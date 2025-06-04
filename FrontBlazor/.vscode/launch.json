@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Ejecutar Blazor WebAssembly sin navegador",
+            "type": "blazorwasm",
+            "request": "launch",
+            "url": "http://localhost:5231",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

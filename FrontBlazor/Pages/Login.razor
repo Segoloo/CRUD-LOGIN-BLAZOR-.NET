@@ -1,0 +1,211 @@
+@page "/login"
+@using System.Net.Http.Json
+@layout LoginLayout
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inherits FrontBlazor.Services.ValidacionAcceso
+
+<style>
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+
+    .fondo-login {
+        min-height: 100vh;
+        background: linear-gradient(to right, #6a0dad, #1e90ff); /* Morado a azul bonito */
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+
+    .logo-itm {
+        width: 250px;
+        height: 250px;
+        border-radius: 50%;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border: 4px solid white;
+    }
+
+    .card-login {
+        backdrop-filter: blur(10px);
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 1rem;
+    }
+</style>
+
+<section class="vh-100 d-flex align-items-center justify-content-center fondo-login">
+    <div class="container">
+        <div class="row justify-content-center align-items-center">
+
+            <!-- Imagen -->
+            <div class="col-md-6 text-center d-none d-md-block">
+                <img src="https://infolocal.comfenalcoantioquia.com/media/com_jbusinessdirectory/pictures/companies/607/itm_1743538788.jpeg"
+                     class="img-fluid logo-itm" alt="Logo ITM" />
+            </div>
+
+            <!-- Login Form -->
+            <div class="col-md-6">
+                <div class="card card-login p-4 shadow-lg border-0">
+                    <h3 class="text-center mb-4 fw-bold">Iniciar Sesión</h3>
+
+                    <EditForm Model="@modeloLogin" OnValidSubmit="ManejarLogin">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label for="formCorreo" class="form-label">Correo Electrónico</label>
+                            <InputText id="formCorreo" class="form-control" @bind-Value="modeloLogin.Correo" placeholder="ejemplo@correo.com" />
+                            <ValidationMessage For="@(() => modeloLogin.Correo)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="formContrasena" class="form-label">Contraseña</label>
+                            <InputText id="formContrasena" type="password" class="form-control" @bind-Value="modeloLogin.Contrasena" placeholder="********" />
+                            <ValidationMessage For="@(() => modeloLogin.Contrasena)" />
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Ingresar</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+@code {
+    private ModeloLogin modeloLogin = new ModeloLogin();
+
+    private async Task ManejarLogin()
+    {
+        try
+        {
+            var datosVerificar = new Dictionary<string, string>
+            {
+                { "campoUsuario", "email" },
+                { "campoContrasena", "contrasena" },
+                { "valorUsuario", modeloLogin.Correo },
+                { "valorContrasena", modeloLogin.Contrasena }
+            };
+
+            var respuestaVerificar = await Http.PostAsJsonAsync(
+                "http://localhost:5178/api/proyecto/usuario/verificar-contrasena",
+                datosVerificar
+            );
+
+            if (respuestaVerificar.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Inicio de sesión exitoso.");
+
+                var jsonConsultaRoles = new
+                {
+                    consulta = @"SELECT u.email AS EmailUsuario, r.nombre AS NombreRol
+                                 FROM usuario u
+                                 INNER JOIN rol_usuario ru ON u.email = ru.fkemail
+                                 INNER JOIN rol r ON ru.fkidrol = r.id
+                                 WHERE u.email = @EmailUsuario",
+                    parametros = new { EmailUsuario = modeloLogin.Correo }
+                };
+
+                var respuestaRoles = await Http.PostAsJsonAsync(
+                    "http://localhost:5178/api/proyecto/tabla/ejecutar-consulta-parametrizada",
+                    jsonConsultaRoles
+                );
+
+                if (respuestaRoles.IsSuccessStatusCode)
+                {
+                    var listaRoles = await respuestaRoles.Content.ReadFromJsonAsync<List<Dictionary<string, object>>>();
+
+                    if (listaRoles != null && listaRoles.Any())
+                    {
+                        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "usuarioEmail", modeloLogin.Correo);
+                        await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", "isLoggedIn", "true");
+
+                        foreach (var rol in listaRoles)
+                        {
+                            if (rol.TryGetValue("NombreRol", out object? nombreRolObj) && nombreRolObj is not null)
+                            {
+                                var nombreRol = nombreRolObj.ToString();
+                                if (!string.IsNullOrEmpty(nombreRol))
+                                {
+                                    await JSRuntime.InvokeVoidAsync("sessionStorage.setItem", $"rol_{nombreRol}", nombreRol);
+
+                                    var jsonConsultaRutas = new
+                                    {
+                                        consulta = "SELECT Ruta FROM RutaRol WHERE Rol = @Rol",
+                                        parametros = new { Rol = nombreRol }
+                                    };
+
+                                    var respuestaRutas = await Http.PostAsJsonAsync(
+                                        "http://localhost:5178/api/proyecto/tabla/ejecutar-consulta-parametrizada",
+                                        jsonConsultaRutas
+                                    );
+
+                                    if (respuestaRutas.IsSuccessStatusCode)
+                                    {
+                                        var listaRutas = await respuestaRutas.Content.ReadFromJsonAsync<List<Dictionary<string, object>>>();
+                                        if (listaRutas != null)
+                                        {
+                                            foreach (var ruta in listaRutas)
+                                            {
+                                                if (ruta.TryGetValue("Ruta", out object? nombreRutaObj) && nombreRutaObj is not null)
+                                                {
+                                                    var nombreRuta = nombreRutaObj.ToString();
+                                                    if (!string.IsNullOrEmpty(nombreRuta))
+                                                    {
+                                                        await JSRuntime.InvokeVoidAsync(
+                                                            "sessionStorage.setItem",
+                                                            $"ruta_{nombreRuta}",
+                                                            nombreRuta
+                                                        );
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        await JSRuntime.InvokeVoidAsync("alert", "Roles obtenidos correctamente.");
+                        Navigation.NavigateTo("/", forceLoad: true);
+                    }
+                    else
+                    {
+                        await JSRuntime.InvokeVoidAsync("alert", "No se encontraron roles para el usuario.");
+                    }
+                }
+                else
+                {
+                    var errorContenido = await respuestaRoles.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Error al obtener roles: {errorContenido}");
+                    await JSRuntime.InvokeVoidAsync("alert", "Error al obtener los roles del usuario.");
+                }
+            }
+            else if (respuestaVerificar.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Correo o contraseña incorrectos.");
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Error al iniciar sesión. Inténtelo de nuevo.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en el proceso de login: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error inesperado: {ex.Message}");
+        }
+    }
+
+    public class ModeloLogin
+    {
+        public string Correo { get; set; } = string.Empty;
+        public string Contrasena { get; set; } = string.Empty;
+    }
+}

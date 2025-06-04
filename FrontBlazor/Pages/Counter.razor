@@ -1,0 +1,37 @@
+﻿<!-- Directiva que establece la ruta de URL para acceder a este componente -->
+<!-- La página será accesible en la URL "/counter" -->
+@page "/counter"
+
+<!-- Define el título que se mostrará en la pestaña del navegador cuando se visite esta página -->
+<PageTitle>Counter</PageTitle>
+
+<!-- Encabezado principal de la página -->
+<h1>Counter</h1>
+
+<!-- Párrafo que muestra el valor actual del contador -->
+<!-- El atributo role="status" mejora la accesibilidad indicando que este texto puede cambiar -->
+<!-- @currentCount es una variable C# que se renderiza dinámicamente -->
+<p role="status">Current count: @currentCount</p>
+
+<!-- Botón con estilo Bootstrap (btn-primary da el color azul) -->
+<!-- @onclick es un evento de Blazor que vincula el clic con el método IncrementCount -->
+<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+
+<!-- Bloque de código C# que define la lógica del componente -->
+@code {
+    // Variable privada para almacenar el valor actual del contador
+    // Se inicializa a 0
+    private int currentCount = 0;
+
+    // Método que incrementa el contador en 1 cada vez que se llama
+    // Se ejecuta cuando se hace clic en el botón
+    private void IncrementCount()
+    {
+        currentCount++;
+    }
+}
+
+<!-- Esta etiqueta es un marcador o configuración para el estilo de usuario -->
+<!-- Es  parte de un sistema de personalización de la interfaz -->
+<!-- Actualmente está configurado como "Normal", sugiriendo que hay otros estilos disponibles -->
+<userStyle>Normal</userStyle>

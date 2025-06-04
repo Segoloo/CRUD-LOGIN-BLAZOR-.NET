@@ -1,0 +1,572 @@
+@page "/unidad"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<div class="container-xl">
+    <div class="table-responsive">
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2>Administrar <b>Unidad de Medicion</b></h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-info btn-sm" @onclick="() => mostrarModalConsulta = true">
+                            <i class="material-icons">&#xE8B6;</i> <span>Consultar</span>
+                        </button>
+                        <!-- Mostrar botones según rol -->
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-danger btn-sm" @onclick="MostrarModalEliminarMultiples">
+                                <i class="material-icons">&#xE15C;</i> <span>Eliminar</span>
+                            </button>
+                        }
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-success btn-sm" @onclick="AbrirModal">
+                                <i class="material-icons">&#xE147;</i> <span>Agregar</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (Unidades == null || Unidades.Count == 0)
+            {
+                <p>No hay unidades de medicion.</p>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            @if (puedeAgregarEliminar)
+                            {
+                                <th>
+                                    <span class="custom-checkbox">
+                                        <input type="checkbox" @bind="@seleccionarTodos" disabled="@(!puedeAgregarEliminar)">
+                                        <label></label>
+                                    </span>
+                                </th>
+                            }
+                            <th>Id</th>
+                            <th>Descripcion</th>
+                            @if (puedeEditar || puedeAgregarEliminar)
+                            {
+                                <th>Accion</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var unidad in Unidades)
+                        {
+                            <tr>
+                                @if (puedeAgregarEliminar) // Solo mostrar checkbox si tiene permiso para eliminar
+                                {
+                                    <td>
+                                        <span class="custom-checkbox">
+                                            <input type="checkbox" @bind="@UnidadesSeleccionado[unidad]" disabled="@(!puedeAgregarEliminar)">
+                                            <label></label>
+                                        </span>
+                                    </td>
+                                }
+                                <td>@ObtenerValor(unidad, "id")</td>
+                                <td>@ObtenerValor(unidad, "descripcion")</td>
+                                @if (puedeEditar || puedeAgregarEliminar)
+                                {
+                                    <td>
+                                        @if (puedeEditar)
+                                        {
+                                            <a href="#" class="edit" @onclick="() => EditarUnidad(unidad)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Editar">&#xE254;</i>
+                                            </a>
+                                        }
+                                        @if (puedeAgregarEliminar)
+                                        {
+                                            <a href="#" class="delete" @onclick="() => EliminarUnidad(unidad)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Eliminar">&#xE872;</i>
+                                            </a>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="GuardarUnidad">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Agregar unidades Unidad de Medicion</h4>
+                        <button type="button" class="close" @onclick="CerrarModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Descripcion</label>
+                            <input type="text" class="form-control" @bind="nombreUnidad" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalConsulta)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consultar Unidad de Medicion</h4>
+                    <button type="button" class="close" @onclick="CerrarModalConsulta">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Código de la Unidad de Medicion</label>
+                        <input type="text" class="form-control" @bind="codigoUnidadConsulta">
+                    </div>
+                    <button class="btn btn-primary mt-2" @onclick="ConsultarUnidad">Buscar</button>
+
+                    @if (unidadConsultado != null)
+                    {
+                        <hr>
+                        <div class="form-group">
+                            <label>Descripcion</label>
+                            <input type="text" class="form-control" value="@nombreunidadConsulta" disabled>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalConsulta">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEditar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="this" OnValidSubmit="ActualizarUnidad">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar Unidad de Medicion</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEditar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="text" class="form-control" @bind="codigoUnidadEditar" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Descripcion</label>
+                            <input type="text" class="form-control" @bind="nombreUnidadEditar" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEditar">Cancelar</button>
+                        <button type="submit" class="btn btn-info">Actualizar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (mostrarModalEliminar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarUnidad">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Unidad de Medicion</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro(a) de que desea eliminar esta Unidad de Medicion?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminarMultiples)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarSeleccionados">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar unidades de Medicion Seleccionados</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminarMultiples">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar las unidades de Medicion seleccionados?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminarMultiples">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> Unidades = new List<Dictionary<string, object>>();
+    private Dictionary<Dictionary<string, object>, bool> UnidadesSeleccionado = new();
+    private bool cargando = true;
+    private string? errorMensaje = null;
+
+    private bool seleccionarTodos
+    {
+        get => _seleccionarTodos;
+        set
+        {
+            _seleccionarTodos = value;
+            foreach (var clave in UnidadesSeleccionado.Keys.ToList())
+            {
+                UnidadesSeleccionado[clave] = _seleccionarTodos;
+            }
+        }
+    }
+    private bool _seleccionarTodos = false;
+    private bool mostrarModal = false;
+    private string IdUnidad = "";
+    private string nombreUnidad = "";
+
+    // Variables para controlar el modal de consulta
+    private bool mostrarModalConsulta = false;
+    private string codigoUnidadConsulta = "";
+
+    // Variables para mostrar los datos de la unidad de medicion consultado
+    private Dictionary<string, object>? unidadConsultado = null;
+    private string nombreunidadConsulta = "";
+    private int stockunidadConsulta = 0;
+    private decimal valorUnitariounidadConsulta = 0.0m;
+
+    // Variables para el modal de edición
+    private bool mostrarModalEditar = false;
+    private Dictionary<string, object>? unidadParaEditar = null;
+    private string codigoUnidadEditar = "";
+    private string nombreUnidadEditar = "";
+
+    // Variables para el modal de eliminación
+    private bool mostrarModalEliminar = false;
+    private Dictionary<string, object>? UnidadParaEliminar = null;
+
+    // Variables para el modal de eliminación múltiple
+    private bool mostrarModalEliminarMultiples = false;
+
+    // Nuevas propiedades para control de acceso
+    private bool esAdmin = false;
+    private bool esValidador = false;
+    private bool esVerificador = false;
+    private bool puedeEditar => esAdmin || esValidador;
+    private bool puedeAgregarEliminar => esAdmin;
+    private bool puedeConsultar => true; // Todos pueden consultar
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarUnidad();
+        await VerificarRoles();
+    }
+    private async Task VerificarRoles()
+    {
+        // Obtener roles de sessionStorage
+        var rolAdmin = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_admin");
+        var rolValidador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Validador");
+        var rolVerificador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Verificador");
+
+        esAdmin = !string.IsNullOrEmpty(rolAdmin);
+        esValidador = !string.IsNullOrEmpty(rolValidador);
+        esVerificador = !string.IsNullOrEmpty(rolVerificador);
+    }
+    private async Task CargarUnidad()
+    {
+        cargando = true;
+        errorMensaje = null;
+
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync("proyecto", "unidadmedicion");
+            Unidades = resultado ?? new List<Dictionary<string, object>>();
+            UnidadesSeleccionado = Unidades.ToDictionary(p => p, p => false);
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar unidadmedicion: {ex.Message}";
+            Unidades = new List<Dictionary<string, object>>();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+    private async Task GuardarUnidad()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(nombreUnidad))
+        {
+            errorMensaje = "El código y la descripcion de la Unidad de medicion son obligatorios.";
+            return;
+        }
+
+        var nuevoUnidad = new Dictionary<string, object>
+        {
+            { "descripcion", nombreUnidad },
+        };
+
+        bool resultado = await servicioEntidad.CrearAsync("proyecto", "unidadmedicion", nuevoUnidad);
+
+        if (resultado)
+        {
+            await CargarUnidad(); // 🔄 Refrescar para obtener el ID generado por la base de datos
+            CerrarModal();
+        }
+        else
+        {
+            errorMensaje = "Error al guardar la Unidad de medicion en la base de datos.";
+        }
+    }
+
+
+    private void AbrirModal()
+    {
+        mostrarModal = true;
+        nombreUnidad = "";
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+    private async Task ConsultarUnidad()
+    {
+        if (string.IsNullOrEmpty(codigoUnidadConsulta))
+        {
+            errorMensaje = "Debe ingresar un código de Unidad de medicion.";
+            return;
+        }
+
+        var resultado = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "unidadmedicion", "Id", codigoUnidadConsulta);
+
+        if (resultado != null)
+        {
+            unidadConsultado = resultado;
+            nombreunidadConsulta = ObtenerValor(resultado, "descripcion");
+        }
+        else
+        {
+            errorMensaje = "No se encontró la Unidad de medicion.";
+            unidadConsultado = null;
+            nombreunidadConsulta = "";
+        }
+    }
+    private void CerrarModalConsulta()
+    {
+        mostrarModalConsulta = false;
+        codigoUnidadConsulta = "";
+        unidadConsultado = null;
+        nombreunidadConsulta = "";
+    }
+
+    private void EditarUnidadSeleccionado()
+    {
+        var seleccionado = UnidadesSeleccionado.FirstOrDefault(x => x.Value).Key;
+        if (seleccionado != null)
+        {
+            EditarUnidad(seleccionado);
+        }
+        else
+        {
+            errorMensaje = "Debe seleccionar una Unidad de medicion para editar.";
+        }
+    }
+    private void EditarUnidad(Dictionary<string, object> unidad)
+    {
+        unidadParaEditar = unidad;
+        
+        // Cargar datos de unidadmedicion en el formulario de edición
+        codigoUnidadEditar = ObtenerValor(unidad, "id");
+        nombreUnidadEditar = ObtenerValor(unidad, "descripcion");
+        
+        mostrarModalEditar = true;
+    }
+    private string ObtenerValor(Dictionary<string, object> diccionario, string clave)
+    {
+        return diccionario.TryGetValue(clave, out var valor) ? valor?.ToString() ?? "" : "";
+    }
+    private async Task ActualizarUnidad()
+    {
+        if (!puedeEditar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (unidadParaEditar == null || string.IsNullOrEmpty(nombreUnidadEditar))
+        {
+            errorMensaje = "La descripcion de la Unidad de medicion es obligatorio.";
+            return;
+        }
+
+        var datosunidadActualizado = new Dictionary<string, object>
+        {
+            { "id", codigoUnidadEditar },
+            { "descripcion", nombreUnidadEditar },
+        };
+
+        bool resultado = await servicioEntidad.ActualizarAsync(
+        "proyecto",
+        "unidadmedicion",
+        "id",                    // <- este es el nombre de la clave primaria
+        codigoUnidadEditar,  // <- este es el valor de la clave primaria
+        datosunidadActualizado);
+
+
+        if (resultado)
+        {
+            // Actualizar la unidadmedicion en la lista local
+            int indice = Unidades.IndexOf(unidadParaEditar);
+            if (indice >= 0)
+            {
+                Unidades[indice] = datosunidadActualizado;
+                UnidadesSeleccionado.Remove(unidadParaEditar);
+                UnidadesSeleccionado[datosunidadActualizado] = false;
+            }
+            CerrarModalEditar();
+        }
+        else
+        {
+            errorMensaje = "Error al actualizar la Unidad de medicion en la base de datos.";
+        }
+    }
+    private void CerrarModalEditar()
+    {
+        mostrarModalEditar = false;
+        unidadParaEditar = null;
+    }
+    private void EliminarUnidad(Dictionary<string, object> unidad)
+    {
+        UnidadParaEliminar = unidad;
+        mostrarModalEliminar = true;
+    }
+    private async Task ConfirmarEliminarUnidad()
+    {
+        if (UnidadParaEliminar != null)
+        {
+            string id = ObtenerValor(UnidadParaEliminar, "id");
+            
+            // Eliminar de la base de datos
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "unidadmedicion", 
+                "id", 
+                id);
+                
+            if (resultado)
+            {
+                // Eliminar de la lista local
+                Unidades.Remove(UnidadParaEliminar);
+                UnidadesSeleccionado.Remove(UnidadParaEliminar);
+            }
+            else
+            {
+                errorMensaje = "Error al eliminar la unidad de medicion de la base de datos.";
+            }
+            
+            CerrarModalEliminar();
+        }
+    }
+    private void CerrarModalEliminar()
+    {
+        mostrarModalEliminar = false;
+        UnidadParaEliminar = null;
+    }
+    private void MostrarModalEliminarMultiples()
+    {
+        // Verificar si hay Unidades de medicion seleccionados
+        var haySeleccionados = UnidadesSeleccionado.Any(x => x.Value);
+        if (!haySeleccionados)
+        {
+            errorMensaje = "Debe seleccionar al menos una unidad de medicion para eliminar.";
+            return;
+        }
+        
+        mostrarModalEliminarMultiples = true;
+    }
+    private async Task ConfirmarEliminarSeleccionados()
+    {
+        await EliminarSeleccionados();
+        CerrarModalEliminarMultiples();
+    }
+    private async Task EliminarSeleccionados()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+        
+        var seleccionados = UnidadesSeleccionado.Where(x => x.Value).Select(x => x.Key).ToList();
+        
+        foreach (var unidad in seleccionados)
+        {
+            string codigo = ObtenerValor(unidad, "id");
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "unidadmedicion", 
+                "id", 
+                codigo);
+                
+            if (resultado)
+            {
+                Unidades.Remove(unidad);
+                UnidadesSeleccionado.Remove(unidad);
+            }
+        }
+        seleccionarTodos = false;
+    }
+    private void CerrarModalEliminarMultiples()
+    {
+        mostrarModalEliminarMultiples = false;
+    }
+}

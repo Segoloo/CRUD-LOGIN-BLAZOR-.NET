@@ -1,0 +1,125 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>csharpapigenerica</name>
+    </assembly>
+    <members>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.Inicio">
+            <summary>
+            Endpoint de la raíz de la API.
+            Muestra un mensaje de bienvenida con información básica sobre la API.
+            </summary>
+            <returns>Un mensaje JSON con información de la API.</returns>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.Listar(System.String,System.String)">
+            <summary>
+            Obtiene todos los registros de una tabla específica en la base de datos.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla a consultar.</param>
+            <returns>Lista de registros en formato JSON si la consulta es exitosa, o un código de error en caso de fallo.</returns>
+            <response code="200">Devuelve la lista de registros de la tabla.</response>
+            <response code="400">El nombre de la tabla es inválido o está vacío.</response>
+            <response code="404">La tabla no existe en la base de datos.</response>
+            <response code="409">Error de restricción en la base de datos (clave foránea o clave duplicada).</response>
+            <response code="500">Error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.ObtenerPorClave(System.String,System.String,System.String,System.String)">
+            <summary>
+            Obtiene un registro específico de una tabla, basado en una clave y su valor.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla en la base de datos.</param>
+            <param name="nombreClave">Nombre de la columna clave utilizada para la búsqueda.</param>
+            <param name="valor">Valor de la clave para filtrar el registro.</param>
+            <returns>Un registro en formato JSON si se encuentra, o un código de error en caso de fallo.</returns>
+            <response code="200">Devuelve el registro encontrado en la tabla.</response>
+            <response code="400">Uno o más parámetros proporcionados son inválidos o están vacíos.</response>
+            <response code="404">No se encontró el registro con el valor especificado.</response>
+            <response code="500">Error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.Crear(System.String,System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            Crea un nuevo registro en la tabla especificada con los datos proporcionados.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla en la base de datos.</param>
+            <param name="datosEntidad">Diccionario con los datos de la entidad a insertar.</param>
+            <returns>Un mensaje de éxito si la inserción es correcta, o un código de error en caso de fallo.</returns>
+            <response code="200">Devuelve un mensaje indicando que la entidad fue creada exitosamente.</response>
+            <response code="400">El nombre de la tabla o los datos de la entidad están vacíos.</response>
+            <response code="500">Error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.Actualizar(System.String,System.String,System.String,System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            Actualiza un registro específico en la tabla de la base de datos basado en una clave y su valor.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla en la base de datos.</param>
+            <param name="nombreClave">Nombre de la columna clave utilizada para la búsqueda.</param>
+            <param name="valorClave">Valor de la clave para identificar el registro a actualizar.</param>
+            <param name="datosEntidad">Diccionario con los datos de la entidad que se actualizarán.</param>
+            <returns>Un mensaje de éxito si la actualización es correcta, o un código de error en caso de fallo.</returns>
+            <response code="200">Devuelve un mensaje indicando que la entidad fue actualizada exitosamente.</response>
+            <response code="400">El nombre de la tabla, la clave o los datos de la entidad están vacíos.</response>
+            <response code="500">Error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.Eliminar(System.String,System.String,System.String,System.String)">
+            <summary>
+            Elimina un registro específico de la tabla de la base de datos basado en una clave y su valor.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla en la base de datos.</param>
+            <param name="nombreClave">Nombre de la columna clave utilizada para identificar el registro.</param>
+            <param name="valorClave">Valor de la clave que identifica el registro a eliminar.</param>
+            <returns>Un mensaje de éxito si la eliminación es correcta, o un código de error en caso de fallo.</returns>
+            <response code="200">Devuelve un mensaje indicando que la entidad fue eliminada exitosamente.</response>
+            <response code="400">El nombre de la tabla o el nombre de la clave están vacíos.</response>
+            <response code="500">Error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.VerificarContrasena(System.String,System.String,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Verifica si la contraseña proporcionada coincide con la contraseña almacenada en la base de datos para un usuario específico.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla en la base de datos que almacena los usuarios.</param>
+            <param name="datos">Diccionario con los campos necesarios para la verificación:
+            <list type="bullet">
+            <item><description><c>campoUsuario</c>: Nombre de la columna que almacena el usuario.</description></item>
+            <item><description><c>campoContrasena</c>: Nombre de la columna que almacena la contraseña hasheada.</description></item>
+            <item><description><c>valorUsuario</c>: Nombre de usuario proporcionado en la solicitud.</description></item>
+            <item><description><c>valorContrasena</c>: Contraseña en texto plano proporcionada en la solicitud.</description></item>
+            </list>
+            </param>
+            <returns>Un mensaje indicando el resultado de la verificación.</returns>
+            <response code="200">La contraseña es correcta y coincide con la almacenada en la base de datos.</response>
+            <response code="400">Faltan parámetros obligatorios en la solicitud.</response>
+            <response code="404">El usuario no fue encontrado en la base de datos.</response>
+            <response code="401">La contraseña es incorrecta.</response>
+            <response code="500">Error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.EjecutarConsultaParametrizada(System.Text.Json.JsonElement)">
+            <summary>
+            Ejecuta una consulta SQL parametrizada recibida en el cuerpo de la solicitud.
+            </summary>
+            <param name="cuerpoSolicitud">Objeto JSON que contiene la consulta SQL y los parámetros.</param>
+            <returns>Un conjunto de resultados en formato JSON o un mensaje de error en caso de fallo.</returns>
+            <response code="200">Devuelve los resultados de la consulta en formato JSON.</response>
+            <response code="400">La consulta SQL no es válida o está vacía.</response>
+            <response code="404">No se encontraron resultados para la consulta proporcionada.</response>
+            <response code="500">Error en la base de datos o error interno del servidor.</response>
+        </member>
+        <member name="M:csharpapigenerica.Controllers.EntidadesController.EjecutarProcedimientoAlmacenado(System.String,System.String,System.Collections.Generic.Dictionary{System.String,System.Object})">
+            <summary>
+            Ejecuta un procedimiento almacenado con los parámetros proporcionados.
+            </summary>
+            <param name="nombreProyecto">Nombre del proyecto al que pertenece la tabla.</param>
+            <param name="nombreTabla">Nombre de la tabla relacionada con el procedimiento.</param>
+            <param name="parametrosSP">Diccionario con el nombre del SP y sus parámetros.</param>
+            <returns>Los resultados del procedimiento almacenado o un mensaje de error.</returns>
+            <response code="200">Devuelve los resultados del procedimiento almacenado.</response>
+            <response code="400">El nombre del SP no está especificado o los parámetros son inválidos.</response>
+            <response code="500">Error al ejecutar el procedimiento almacenado.</response>
+        </member>
+    </members>
+</doc>

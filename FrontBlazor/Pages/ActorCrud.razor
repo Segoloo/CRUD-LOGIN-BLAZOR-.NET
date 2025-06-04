@@ -1,0 +1,594 @@
+@page "/actor"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<div class="container-xl">
+    <div class="table-responsive">
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2>Administrar <b>Actor </b></h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-info btn-sm" @onclick="() => mostrarModalConsulta = true">
+                            <i class="material-icons">&#xE8B6;</i> <span>Consultar</span>
+                        </button>
+                        <!-- Mostrar botones según rol -->
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-danger btn-sm" @onclick="MostrarModalEliminarMultiples">
+                                <i class="material-icons">&#xE15C;</i> <span>Eliminar</span>
+                            </button>
+                        }
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-success btn-sm" @onclick="AbrirModal">
+                                <i class="material-icons">&#xE147;</i> <span>Agregar</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (Actores == null || Actores.Count == 0)
+            {
+                <p>No hay actores.</p>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            @if (puedeAgregarEliminar)
+                            {
+                                <th>
+                                    <span class="custom-checkbox">
+                                        <input type="checkbox" @bind="@seleccionarTodos" disabled="@(!puedeAgregarEliminar)">
+                                        <label></label>
+                                    </span>
+                                </th>
+                            }
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            @if (puedeEditar || puedeAgregarEliminar)
+                            {
+                                <th>Accion</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var actor in Actores)
+                        {
+                            <tr>
+                                @if (puedeAgregarEliminar) // Solo mostrar checkbox si tiene permiso para eliminar
+                                {
+                                    <td>
+                                        <span class="custom-checkbox">
+                                            <input type="checkbox" @bind="@ActoresSeleccionado[actor]" disabled="@(!puedeAgregarEliminar)">
+                                            <label></label>
+                                        </span>
+                                    </td>
+                                }
+                                <td>@ObtenerValor(actor, "id")</td>
+                                <td>@ObtenerValor(actor, "nombre")</td>
+                                @if (puedeEditar || puedeAgregarEliminar)
+                                {
+                                    <td>
+                                        @if (puedeEditar)
+                                        {
+                                            <a href="#" class="edit" @onclick="() => EditarActor(actor)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Editar">&#xE254;</i>
+                                            </a>
+                                        }
+                                        @if (puedeAgregarEliminar)
+                                        {
+                                            <a href="#" class="delete" @onclick="() => EliminarActor(actor)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Eliminar">&#xE872;</i>
+                                            </a>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="GuardarActor">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Agregar un Actor</h4>
+                        <button type="button" class="close" @onclick="CerrarModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="text" class="form-control" @bind="IdActor">
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreActor" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de actor</label>
+                            <input type="text" class="form-control" @bind="FkActor" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalConsulta)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consultar Actor</h4>
+                    <button type="button" class="close" @onclick="CerrarModalConsulta">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Código del Actor</label>
+                        <input type="text" class="form-control" @bind="codigoActorConsulta">
+                    </div>
+                    <button class="btn btn-primary mt-2" @onclick="ConsultarActor">Buscar</button>
+
+                    @if (actorConsultado != null)
+                    {
+                        <hr>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" value="@nombreactorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de actor</label>
+                            <input type="text" class="form-control" value="@foraneaactorConsulta" disabled>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalConsulta">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEditar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="this" OnValidSubmit="ActualizarActor">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar Actor</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEditar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="text" class="form-control" @bind="codigoActorEditar" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreActorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de actor</label>
+                            <input type="text" class="form-control" @bind="foraneaActorEditar" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEditar">Cancelar</button>
+                        <button type="submit" class="btn btn-info">Actualizar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (mostrarModalEliminar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarActor">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Actor</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro(a) de que desea eliminar este Actor?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminarMultiples)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarSeleccionados">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Actores Seleccionados</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminarMultiples">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar los Actores seleccionados?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminarMultiples">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> Actores = new List<Dictionary<string, object>>();
+    private Dictionary<Dictionary<string, object>, bool> ActoresSeleccionado = new();
+    private bool cargando = true;
+    private string? errorMensaje = null;
+    private bool seleccionarTodos
+    {
+        get => _seleccionarTodos;
+        set
+        {
+            _seleccionarTodos = value;
+            foreach (var clave in ActoresSeleccionado.Keys.ToList())
+            {
+                ActoresSeleccionado[clave] = _seleccionarTodos;
+            }
+        }
+    }
+    private bool _seleccionarTodos = false;
+    private bool mostrarModal = false;
+    private string IdActor = "";
+    private string FkActor = "";
+    private string nombreActor = "";
+
+    // Variables para controlar el modal de consulta
+    private bool mostrarModalConsulta = false;
+    private string codigoActorConsulta = "";
+
+    // Variables para mostrar los datos del actor consultado
+    private Dictionary<string, object>? actorConsultado = null;
+    private string nombreactorConsulta = "";
+    private string foraneaactorConsulta = "";
+    private int stockactorConsulta = 0;
+    private decimal valorUnitarioactorConsulta = 0.0m;
+
+    // Variables para el modal de edición
+    private bool mostrarModalEditar = false;
+    private Dictionary<string, object>? actorParaEditar = null;
+    private string codigoActorEditar = "";
+    private string nombreActorEditar = "";
+    private string foraneaActorEditar = "";
+
+    // Variables para el modal de eliminación
+    private bool mostrarModalEliminar = false;
+    private Dictionary<string, object>? ActorParaEliminar = null;
+
+    // Variables para el modal de eliminación múltiple
+    private bool mostrarModalEliminarMultiples = false;
+
+    // Nuevas propiedades para control de acceso
+    private bool esAdmin = false;
+    private bool esValidador = false;
+    private bool esVerificador = false;
+    private bool puedeEditar => esAdmin || esValidador;
+    private bool puedeAgregarEliminar => esAdmin;
+    private bool puedeConsultar => true; // Todos pueden consultar
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarActor();
+        await VerificarRoles();
+    }
+    private async Task VerificarRoles()
+    {
+        // Obtener roles de sessionStorage
+        var rolAdmin = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_admin");
+        var rolValidador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Validador");
+        var rolVerificador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Verificador");
+
+        esAdmin = !string.IsNullOrEmpty(rolAdmin);
+        esValidador = !string.IsNullOrEmpty(rolValidador);
+        esVerificador = !string.IsNullOrEmpty(rolVerificador);
+    }
+    private async Task CargarActor()
+    {
+        cargando = true;
+        errorMensaje = null;
+
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync("proyecto", "actor");
+            Actores = resultado ?? new List<Dictionary<string, object>>();
+            ActoresSeleccionado = Actores.ToDictionary(p => p, p => false);
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar actor: {ex.Message}";
+            Actores = new List<Dictionary<string, object>>();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+    private async Task GuardarActor()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(IdActor) || string.IsNullOrEmpty(nombreActor) || string.IsNullOrEmpty(FkActor))
+        {
+            errorMensaje = "El código y el nombre del actor son obligatorios.";
+            return;
+        }
+
+        var nuevoActor = new Dictionary<string, object>
+        {
+            { "id", IdActor },
+            { "nombre", nombreActor },
+            { "fkidtipoactor", FkActor },
+        };
+
+        bool resultado = await servicioEntidad.CrearAsync("proyecto", "actor", nuevoActor);
+
+        if (resultado)
+        {
+            await CargarActor(); // 🔄 Refrescar para obtener el ID generado por la base de datos
+            CerrarModal();
+        }
+        else
+        {
+            errorMensaje = "Error al guardar el actor en la base de datos.";
+        }
+    }
+    private void AbrirModal()
+    {
+        mostrarModal = true;
+        nombreActor = "";
+    }
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+    private async Task ConsultarActor()
+    {
+        if (string.IsNullOrEmpty(codigoActorConsulta))
+        {
+            errorMensaje = "Debe ingresar un código de actor.";
+            return;
+        }
+
+        var resultado = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "actor", "Id", codigoActorConsulta);
+
+        if (resultado != null)
+        {
+            actorConsultado = resultado;
+            nombreactorConsulta = ObtenerValor(resultado, "nombre");
+            foraneaactorConsulta = ObtenerValor(resultado, "fkidtipoactor");
+        }
+        else
+        {
+            errorMensaje = "No se encontró el actor.";
+            actorConsultado = null;
+            nombreactorConsulta = "";
+        }
+    }
+    private void CerrarModalConsulta()
+    {
+        mostrarModalConsulta = false;
+        codigoActorConsulta = "";
+        actorConsultado = null;
+        nombreactorConsulta = "";
+    }
+
+    private void EditarActorSeleccionado()
+    {
+        var seleccionado = ActoresSeleccionado.FirstOrDefault(x => x.Value).Key;
+        if (seleccionado != null)
+        {
+            EditarActor(seleccionado);
+        }
+        else
+        {
+            errorMensaje = "Debe seleccionar un actor para editar.";
+        }
+    }
+    private void EditarActor(Dictionary<string, object> actor)
+    {
+        actorParaEditar = actor;
+        
+        // Cargar datos del tipoactor en el formulario de edición
+        codigoActorEditar = ObtenerValor(actor, "id");
+        nombreActorEditar = ObtenerValor(actor, "nombre");
+        foraneaActorEditar = ObtenerValor(actor, "fkidtipoactor");
+        
+        mostrarModalEditar = true;
+    }
+    private string ObtenerValor(Dictionary<string, object> diccionario, string clave)
+    {
+        return diccionario.TryGetValue(clave, out var valor) ? valor?.ToString() ?? "" : "";
+    }
+    private async Task ActualizarActor()
+    {
+        if (!puedeEditar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (actorParaEditar == null || 
+            string.IsNullOrEmpty(nombreActorEditar) ||
+            string.IsNullOrEmpty(foraneaActorEditar))
+        {
+            errorMensaje = "El nombre y el tipo del actor es obligatorio.";
+            return;
+        }
+
+        var datosactorActualizado = new Dictionary<string, object>
+        {
+            { "id", codigoActorEditar },
+            { "nombre", nombreActorEditar },
+            { "fkidtipoactor", foraneaActorEditar },
+        };
+
+        bool resultado = await servicioEntidad.ActualizarAsync(
+        "proyecto",
+        "actor",
+        "id",                    // <- este es el nombre de la clave primaria
+        codigoActorEditar,  // <- este es el valor de la clave primaria
+        datosactorActualizado);
+
+
+        if (resultado)
+        {
+            // Actualizar el actor en la lista local
+            int indice = Actores.IndexOf(actorParaEditar);
+            if (indice >= 0)
+            {
+                Actores[indice] = datosactorActualizado;
+                ActoresSeleccionado.Remove(actorParaEditar);
+                ActoresSeleccionado[datosactorActualizado] = false;
+            }
+            CerrarModalEditar();
+        }
+        else
+        {
+            errorMensaje = "Error al actualizar el actor en la base de datos.";
+        }
+    }
+    private void CerrarModalEditar()
+    {
+        mostrarModalEditar = false;
+        actorParaEditar = null;
+    }
+    private void EliminarActor(Dictionary<string, object> actor)
+    {
+        ActorParaEliminar = actor;
+        mostrarModalEliminar = true;
+    }
+    private async Task ConfirmarEliminarActor()
+    {
+        if (ActorParaEliminar != null)
+        {
+            string id = ObtenerValor(ActorParaEliminar, "id");
+            
+            // Eliminar de la base de datos
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "actor", 
+                "id", 
+                id);
+                
+            if (resultado)
+            {
+                // Eliminar de la lista local
+                Actores.Remove(ActorParaEliminar);
+                ActoresSeleccionado.Remove(ActorParaEliminar);
+            }
+            else
+            {
+                errorMensaje = "Error al eliminar el actor de la base de datos.";
+            }
+            
+            CerrarModalEliminar();
+        }
+    }
+    private void CerrarModalEliminar()
+    {
+        mostrarModalEliminar = false;
+        ActorParaEliminar = null;
+    }
+    private void MostrarModalEliminarMultiples()
+    {
+        // Verificar si hay actores seleccionados
+        var haySeleccionados = ActoresSeleccionado.Any(x => x.Value);
+        if (!haySeleccionados)
+        {
+            errorMensaje = "Debe seleccionar al menos un actor para eliminar.";
+            return;
+        }
+        
+        mostrarModalEliminarMultiples = true;
+    }
+    private async Task ConfirmarEliminarSeleccionados()
+    {
+        await EliminarSeleccionados();
+        CerrarModalEliminarMultiples();
+    }
+    private async Task EliminarSeleccionados()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        var seleccionados = ActoresSeleccionado.Where(x => x.Value).Select(x => x.Key).ToList();
+        
+        foreach (var actor in seleccionados)
+        {
+            string codigo = ObtenerValor(actor, "id");
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "actor", 
+                "id", 
+                codigo);
+                
+            if (resultado)
+            {
+                Actores.Remove(actor);
+                ActoresSeleccionado.Remove(actor);
+            }
+        }
+        seleccionarTodos = false;
+    }
+    private void CerrarModalEliminarMultiples()
+    {
+        mostrarModalEliminarMultiples = false;
+    }
+}

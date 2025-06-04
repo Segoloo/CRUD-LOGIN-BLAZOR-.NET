@@ -1,0 +1,573 @@
+@page "/tipoactor"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<div class="container-xl">
+    <div class="table-responsive">
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2>Administrar <b>Tipo Actor </b></h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-info btn-sm" @onclick="() => mostrarModalConsulta = true">
+                            <i class="material-icons">&#xE8B6;</i> <span>Consultar</span>
+                        </button>
+                        <!-- Mostrar botones según rol -->
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-danger btn-sm" @onclick="MostrarModalEliminarMultiples">
+                                <i class="material-icons">&#xE15C;</i> <span>Eliminar</span>
+                            </button>
+                        }
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-success btn-sm" @onclick="AbrirModal">
+                                <i class="material-icons">&#xE147;</i> <span>Agregar</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (TipoActores == null || TipoActores.Count == 0)
+            {
+                <p>No hay Tipo actores.</p>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            @if (puedeAgregarEliminar)
+                            {
+                                <th>
+                                    <span class="custom-checkbox">
+                                        <input type="checkbox" @bind="@seleccionarTodos" disabled="@(!puedeAgregarEliminar)">
+                                        <label></label>
+                                    </span>
+                                </th>
+                            }
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            @if (puedeEditar || puedeAgregarEliminar)
+                            {
+                                <th>Accion</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var tipoactor in TipoActores)
+                        {
+                            <tr>
+                                @if (puedeAgregarEliminar) // Solo mostrar checkbox si tiene permiso para eliminar
+                                {
+                                    <td>
+                                        <span class="custom-checkbox">
+                                            <input type="checkbox" @bind="@TipoActoresSeleccionado[tipoactor]" disabled="@(!puedeAgregarEliminar)">
+                                            <label></label>
+                                        </span>
+                                    </td>
+                                }
+                                <td>@ObtenerValor(tipoactor, "id")</td>
+                                <td>@ObtenerValor(tipoactor, "nombre")</td>
+                                @if (puedeEditar || puedeAgregarEliminar)
+                                {
+                                    <td>
+                                        @if (puedeEditar)
+                                        {
+                                            <a href="#" class="edit" @onclick="() => EditarTipoActor(tipoactor)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Editar">&#xE254;</i>
+                                            </a>
+                                        }
+                                        @if (puedeAgregarEliminar)
+                                        {
+                                            <a href="#" class="delete" @onclick="() => EliminarTipoActor(tipoactor)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Eliminar">&#xE872;</i>
+                                            </a>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="GuardarTipoActor">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Agregar un Tipo de Actor</h4>
+                        <button type="button" class="close" @onclick="CerrarModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreTipoActor" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalConsulta)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consultar Tipo Actor</h4>
+                    <button type="button" class="close" @onclick="CerrarModalConsulta">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Código del Tipo Actor</label>
+                        <input type="text" class="form-control" @bind="codigoTipoActorConsulta">
+                    </div>
+                    <button class="btn btn-primary mt-2" @onclick="ConsultarTipoActor">Buscar</button>
+
+                    @if (tipoactorConsultado != null)
+                    {
+                        <hr>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" value="@nombretipoactorConsulta" disabled>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalConsulta">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEditar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="this" OnValidSubmit="ActualizarTipoActor">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar Tipo de Actor</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEditar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="text" class="form-control" @bind="codigoTipoActorEditar" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreTipoActorEditar" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEditar">Cancelar</button>
+                        <button type="submit" class="btn btn-info">Actualizar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (mostrarModalEliminar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarTipoActor">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Tipo Actor</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro(a) de que desea eliminar este Tipo Actor?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminarMultiples)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarSeleccionados">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Tipos de Actores Seleccionados</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminarMultiples">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar los Tipos de Actores seleccionados?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminarMultiples">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> TipoActores = new List<Dictionary<string, object>>();
+    private Dictionary<Dictionary<string, object>, bool> TipoActoresSeleccionado = new();
+    private bool cargando = true;
+    private string? errorMensaje = null;
+
+    private bool seleccionarTodos
+    {
+        get => _seleccionarTodos;
+        set
+        {
+            _seleccionarTodos = value;
+            foreach (var clave in TipoActoresSeleccionado.Keys.ToList())
+            {
+                TipoActoresSeleccionado[clave] = _seleccionarTodos;
+            }
+        }
+    }
+    private bool _seleccionarTodos = false;
+    private bool mostrarModal = false;
+    private string IdTipoActor = "";
+    private string nombreTipoActor = "";
+
+    // Variables para controlar el modal de consulta
+    private bool mostrarModalConsulta = false;
+    private string codigoTipoActorConsulta = "";
+
+    // Variables para mostrar los datos del tipoactor consultado
+    private Dictionary<string, object>? tipoactorConsultado = null;
+    private string nombretipoactorConsulta = "";
+    private int stocktipoactorConsulta = 0;
+    private decimal valorUnitariotipoactorConsulta = 0.0m;
+
+    // Variables para el modal de edición
+    private bool mostrarModalEditar = false;
+    private Dictionary<string, object>? tipoactorParaEditar = null;
+    private string codigoTipoActorEditar = "";
+    private string nombreTipoActorEditar = "";
+
+    // Variables para el modal de eliminación
+    private bool mostrarModalEliminar = false;
+    private Dictionary<string, object>? TipoActorParaEliminar = null;
+
+    // Variables para el modal de eliminación múltiple
+    private bool mostrarModalEliminarMultiples = false;
+
+    // Nuevas propiedades para control de acceso
+    private bool esAdmin = false;
+    private bool esValidador = false;
+    private bool esVerificador = false;
+    private bool puedeEditar => esAdmin || esValidador;
+    private bool puedeAgregarEliminar => esAdmin;
+    private bool puedeConsultar => true; // Todos pueden consultar
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTipoActor();
+        await VerificarRoles();
+    }
+    private async Task VerificarRoles()
+    {
+        // Obtener roles de sessionStorage
+        var rolAdmin = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_admin");
+        var rolValidador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Validador");
+        var rolVerificador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Verificador");
+
+        esAdmin = !string.IsNullOrEmpty(rolAdmin);
+        esValidador = !string.IsNullOrEmpty(rolValidador);
+        esVerificador = !string.IsNullOrEmpty(rolVerificador);
+    }
+    private async Task CargarTipoActor()
+    {
+        cargando = true;
+        errorMensaje = null;
+
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync("proyecto", "tipoactor");
+            TipoActores = resultado ?? new List<Dictionary<string, object>>();
+            TipoActoresSeleccionado = TipoActores.ToDictionary(p => p, p => false);
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar tipo actor: {ex.Message}";
+            TipoActores = new List<Dictionary<string, object>>();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+    private async Task GuardarTipoActor()
+    {
+        if (!puedeAgregarEliminar)
+            {
+                await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+                return;
+            }
+            
+        if (string.IsNullOrEmpty(nombreTipoActor))
+        {
+            errorMensaje = "El código y el nombre del tipo actor son obligatorios.";
+            return;
+        }
+
+        var nuevoTipoActor = new Dictionary<string, object>
+        {
+            { "nombre", nombreTipoActor },
+        };
+
+        bool resultado = await servicioEntidad.CrearAsync("proyecto", "tipoactor", nuevoTipoActor);
+
+        if (resultado)
+        {
+            await CargarTipoActor(); // 🔄 Refrescar para obtener el ID generado por la base de datos
+            CerrarModal();
+        }
+        else
+        {
+            errorMensaje = "Error al guardar el tipo actor en la base de datos.";
+        }
+    }
+
+
+    private void AbrirModal()
+    {
+        mostrarModal = true;
+        nombreTipoActor = "";
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+    private async Task ConsultarTipoActor()
+    {
+        if (string.IsNullOrEmpty(codigoTipoActorConsulta))
+        {
+            errorMensaje = "Debe ingresar un código de tipo de actor.";
+            return;
+        }
+
+        var resultado = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "tipoactor", "Id", codigoTipoActorConsulta);
+
+        if (resultado != null)
+        {
+            tipoactorConsultado = resultado;
+            nombretipoactorConsulta = ObtenerValor(resultado, "nombre");
+        }
+        else
+        {
+            errorMensaje = "No se encontró el tipo actor.";
+            tipoactorConsultado = null;
+            nombretipoactorConsulta = "";
+        }
+    }
+    private void CerrarModalConsulta()
+    {
+        mostrarModalConsulta = false;
+        codigoTipoActorConsulta = "";
+        tipoactorConsultado = null;
+        nombretipoactorConsulta = "";
+    }
+
+    private void EditarTipoActorSeleccionado()
+    {
+        var seleccionado = TipoActoresSeleccionado.FirstOrDefault(x => x.Value).Key;
+        if (seleccionado != null)
+        {
+            EditarTipoActor(seleccionado);
+        }
+        else
+        {
+            errorMensaje = "Debe seleccionar un tipo actor para editar.";
+        }
+    }
+    private void EditarTipoActor(Dictionary<string, object> tipoactor)
+    {
+        tipoactorParaEditar = tipoactor;
+        
+        // Cargar datos del tipoactor en el formulario de edición
+        codigoTipoActorEditar = ObtenerValor(tipoactor, "id");
+        nombreTipoActorEditar = ObtenerValor(tipoactor, "nombre");
+        
+        mostrarModalEditar = true;
+    }
+    private string ObtenerValor(Dictionary<string, object> diccionario, string clave)
+    {
+        return diccionario.TryGetValue(clave, out var valor) ? valor?.ToString() ?? "" : "";
+    }
+    private async Task ActualizarTipoActor()
+    {
+        if (!puedeEditar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (tipoactorParaEditar == null || string.IsNullOrEmpty(nombreTipoActorEditar))
+        {
+            errorMensaje = "El nombre del tipo actor es obligatorio.";
+            return;
+        }
+
+        var datostipoactorActualizado = new Dictionary<string, object>
+        {
+            { "id", codigoTipoActorEditar },
+            { "nombre", nombreTipoActorEditar },
+        };
+
+        bool resultado = await servicioEntidad.ActualizarAsync(
+        "proyecto",
+        "tipoactor",
+        "id",                    // <- este es el nombre de la clave primaria
+        codigoTipoActorEditar,  // <- este es el valor de la clave primaria
+        datostipoactorActualizado);
+
+
+        if (resultado)
+        {
+            // Actualizar el tipoactor en la lista local
+            int indice = TipoActores.IndexOf(tipoactorParaEditar);
+            if (indice >= 0)
+            {
+                TipoActores[indice] = datostipoactorActualizado;
+                TipoActoresSeleccionado.Remove(tipoactorParaEditar);
+                TipoActoresSeleccionado[datostipoactorActualizado] = false;
+            }
+            CerrarModalEditar();
+        }
+        else
+        {
+            errorMensaje = "Error al actualizar el tipo actor en la base de datos.";
+        }
+    }
+    private void CerrarModalEditar()
+    {
+        mostrarModalEditar = false;
+        tipoactorParaEditar = null;
+    }
+    private void EliminarTipoActor(Dictionary<string, object> tipoactor)
+    {
+        TipoActorParaEliminar = tipoactor;
+        mostrarModalEliminar = true;
+    }
+    private async Task ConfirmarEliminarTipoActor()
+    {
+        if (TipoActorParaEliminar != null)
+        {
+            string id = ObtenerValor(TipoActorParaEliminar, "id");
+            
+            // Eliminar de la base de datos
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "tipoactor", 
+                "id", 
+                id);
+                
+            if (resultado)
+            {
+                // Eliminar de la lista local
+                TipoActores.Remove(TipoActorParaEliminar);
+                TipoActoresSeleccionado.Remove(TipoActorParaEliminar);
+            }
+            else
+            {
+                errorMensaje = "Error al eliminar el tipo actor de la base de datos.";
+            }
+            
+            CerrarModalEliminar();
+        }
+    }
+    private void CerrarModalEliminar()
+    {
+        mostrarModalEliminar = false;
+        TipoActorParaEliminar = null;
+    }
+    private void MostrarModalEliminarMultiples()
+    {
+        // Verificar si hay tipoactors seleccionados
+        var haySeleccionados = TipoActoresSeleccionado.Any(x => x.Value);
+        if (!haySeleccionados)
+        {
+            errorMensaje = "Debe seleccionar al menos un tipo actor para eliminar.";
+            return;
+        }
+        
+        mostrarModalEliminarMultiples = true;
+    }
+    private async Task ConfirmarEliminarSeleccionados()
+    {
+        await EliminarSeleccionados();
+        CerrarModalEliminarMultiples();
+    }
+    private async Task EliminarSeleccionados()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+        
+        var seleccionados = TipoActoresSeleccionado.Where(x => x.Value).Select(x => x.Key).ToList();
+        
+        foreach (var tipoactor in seleccionados)
+        {
+            string codigo = ObtenerValor(tipoactor, "id");
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "tipoactor", 
+                "id", 
+                codigo);
+                
+            if (resultado)
+            {
+                TipoActores.Remove(tipoactor);
+                TipoActoresSeleccionado.Remove(tipoactor);
+            }
+        }
+        
+        seleccionarTodos = false;
+    }
+    private void CerrarModalEliminarMultiples()
+    {
+        mostrarModalEliminarMultiples = false;
+    }
+}

@@ -1,0 +1,92 @@
+﻿<!-- Directiva que establece la ruta de URL para acceder a este componente -->
+<!-- La página será accesible en la URL "/weather" -->
+@page "/weather"
+
+<!-- Inyecta el servicio HttpClient en este componente -->
+<!-- Http se usará para realizar solicitudes a APIs o recursos externos -->
+@inject HttpClient Http
+
+<!-- Define el título que se mostrará en la pestaña del navegador cuando se visite esta página -->
+<PageTitle>Weather</PageTitle>
+
+<!-- Encabezado principal de la página -->
+<h1>Weather</h1>
+
+<!-- Texto informativo que explica el propósito de este componente -->
+<p>This component demonstrates fetching data from the server.</p>
+
+<!-- Bloque condicional: muestra un mensaje de carga si los datos aún no están disponibles -->
+@if (forecasts == null)
+{
+    <!-- Mensaje de carga con énfasis visual (cursiva) -->
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <!-- Cuando los datos están disponibles, muestra una tabla con los pronósticos del clima -->
+    <!-- La clase "table" aplica estilos de Bootstrap a la tabla -->
+    <table class="table">
+        <!-- Encabezado de la tabla con nombres de columnas -->
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <!-- Cuerpo de la tabla con datos dinámicos -->
+        <tbody>
+            <!-- Bucle foreach que itera sobre cada pronóstico en el array -->
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <!-- Muestra la fecha formateada como fecha corta -->
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <!-- Muestra la temperatura en grados Celsius -->
+                    <td>@forecast.TemperatureC</td>
+                    <!-- Muestra la temperatura calculada en grados Fahrenheit -->
+                    <td>@forecast.TemperatureF</td>
+                    <!-- Muestra la descripción textual del clima -->
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<!-- Bloque de código C# que define la lógica del componente -->
+@code {
+    // Campo privado para almacenar los datos del pronóstico
+    // El operador ? indica que puede ser nulo
+    private WeatherForecast[]? forecasts;
+
+    // Método que se ejecuta automáticamente cuando se inicializa el componente
+    // override indica que estamos sobrescribiendo un método de la clase base
+    // async permite el uso de await para operaciones asíncronas
+    protected override async Task OnInitializedAsync()
+    {
+        // Realiza una petición HTTP GET asíncrona para obtener datos JSON
+        // Los convierte automáticamente al tipo WeatherForecast[]
+        // El archivo está en wwwroot/sample-data/weather.json
+        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
+    }
+
+    // Clase interna que define la estructura de datos para un pronóstico del clima
+    public class WeatherForecast
+    {
+        // Propiedad para la fecha del pronóstico
+        public DateOnly Date { get; set; }
+
+        // Propiedad para la temperatura en grados Celsius
+        public int TemperatureC { get; set; }
+
+        // Propiedad para la descripción textual del clima
+        // El operador ? indica que puede ser nulo
+        public string? Summary { get; set; }
+
+        // Propiedad calculada que convierte Celsius a Fahrenheit
+        // => define una expresión lambda que calcula el valor automáticamente
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    }
+}

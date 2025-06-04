@@ -1,0 +1,61 @@
+<!-- Declaración del tipo de documento HTML5 -->
+<!DOCTYPE html>
+<html lang="en"><!-- Establece el idioma principal de la página como inglés -->
+
+<head>
+    <!-- Especifica la codificación de caracteres UTF-8 para admitir caracteres internacionales -->
+    <meta charset="utf-8" />
+    <!-- Configura la vista para dispositivos móviles, estableciendo el ancho igual al ancho del dispositivo y una escala inicial de 1.0 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Define el título de la página que se muestra en la pestaña del navegador -->
+    <title>FrontBlazor</title>
+    <!-- Establece la URL base para todas las URL relativas en la página -->
+    <!-- Esto es crucial para el sistema de enrutamiento de Blazor -->
+    <base href="/" />
+    <!-- Enlaza la hoja de estilos de Bootstrap para el diseño y componentes visuales -->
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
+    <!-- Enlaza la hoja de estilos principal de la aplicación -->
+<!-- Estilos personalizados y Bootstrap -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto|Varela+Round">
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+
+    <link rel="stylesheet" href="css/app.css" />
+    <!-- Define el icono que se muestra en la pestaña del navegador -->
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <!-- Enlaza los estilos específicos generados por Blazor para los componentes aislados -->
+    <link href="FrontBlazor.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <!-- Contenedor principal donde se renderizará la aplicación Blazor -->
+    <!-- Este div con id="app" es el punto de montaje para el componente raíz App.razor -->
+    <div id="app">
+        <!-- Animación de carga visible mientras la aplicación Blazor se está inicializando -->
+        <svg class="loading-progress">
+            <!-- Círculos SVG para crear una animación de carga tipo spinner -->
+            <circle r="40%" cx="50%" cy="50%" />
+            <circle r="40%" cx="50%" cy="50%" />
+        </svg>
+        <!-- Contenedor para mostrar texto durante la carga (como porcentaje de carga) -->
+        <div class="loading-progress-text"></div>
+    </div>
+
+    <!-- Contenedor para mostrar errores no controlados en la aplicación -->
+    <!-- Este elemento está oculto de forma predeterminada y solo se muestra cuando ocurre un error -->
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <!-- Enlace para recargar la página en caso de error -->
+        <a href="" class="reload">Reload</a>
+        <!-- Botón para descartar la notificación de error -->
+        <a class="dismiss">🗙</a>
+    </div>
+    <!-- Script principal de Blazor WebAssembly que inicializa la aplicación -->
+    <!-- Este script descarga y ejecuta el runtime de .NET WebAssembly y la aplicación compilada -->
+    <script src="_framework/blazor.webassembly.js"></script>
+</body>
+
+</html>

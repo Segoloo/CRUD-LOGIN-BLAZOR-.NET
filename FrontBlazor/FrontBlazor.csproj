@@ -1,0 +1,37 @@
+<!-- Define el tipo de proyecto como una aplicación Blazor WebAssembly -->
+<!-- Microsoft.NET.Sdk.BlazorWebAssembly es el SDK especializado para crear aplicaciones Blazor que se ejecutan en WebAssembly -->
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <!-- Especifica la versión de .NET que utiliza el proyecto (.NET 8.0) -->
+    <!-- Esta es la versión más reciente del framework a la fecha de creación del proyecto -->
+    <TargetFramework>net8.0</TargetFramework>
+    
+    <!-- Habilita las características de referencia nula en C# -->
+    <!-- Cuando está habilitado, los tipos de referencia no son anulables de forma predeterminada -->
+    <!-- Esto ayuda a evitar excepciones de referencia nula en tiempo de ejecución -->
+    <Nullable>enable</Nullable>
+    
+    <!-- Permite el uso implícito de directivas using comunes -->
+    <!-- Esto reduce la necesidad de escribir directivas using para tipos comunes como System.* -->
+    <!-- Por ejemplo, podemos usar List<> sin tener que escribir using System.Collections.Generic; -->
+    <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Configuración adicional para que se genere el runtimeconfig.json -->
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <OutputType>Exe</OutputType>
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Referencia al paquete principal de Blazor WebAssembly -->
+    <!-- Contiene los componentes y servicios fundamentales para aplicaciones Blazor que se ejecutan en el navegador -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.6" />
+    
+    <!-- Referencia al servidor de desarrollo para Blazor WebAssembly -->
+    <!-- Proporciona capacidades como recarga en caliente (hot reload) durante el desarrollo -->
+    <!-- PrivateAssets="all" significa que este paquete solo se usa durante el desarrollo y no se incluye en la aplicación final -->
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.6" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

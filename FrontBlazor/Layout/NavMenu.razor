@@ -1,0 +1,117 @@
+﻿@inject IJSRuntime JS
+@implements IDisposable
+
+<style>
+    .custom-navbar {
+        padding: 0.75rem 1rem;
+        font-family: 'Segoe UI', sans-serif;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-bottom: 1px solid #c8e6c9;
+        background-color: transparent;
+    }
+
+    .custom-brand {
+        font-weight: 600;
+        font-size: 1.4rem;
+        color: #2e7d32;
+    }
+
+    .custom-sidebar {
+        background: linear-gradient(180deg, #a8e6cf, #b2f7ef);
+        padding: 1rem;
+        font-family: 'Segoe UI', sans-serif;
+        font-size: 1rem;
+        min-height: 100vh;
+    }
+
+    .custom-link {
+        color: #2e7d32;
+        font-weight: 500;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        transition: background 0.2s, color 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .custom-link:hover,
+        .custom-link.active {
+            background-color: rgba(76, 175, 80, 0.2);
+            color: #1b5e20;
+            text-decoration: none;
+        }
+
+    .navbar-toggler {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #2e7d32;
+    }
+
+        .navbar-toggler:focus {
+            outline: none;
+            box-shadow: none;
+        }
+</style>
+
+<div class="top-row navbar custom-navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand custom-brand" href="">🌿 TABLAS CRUD 🌿</a>
+        <button class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span>@(collapseNavMenu ? "☰" : "✖")</span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass custom-sidebar" @onclick="HandleNavClick">
+    <nav class="nav flex-column">
+        <NavLink class="nav-link custom-link" href="" Match="NavLinkMatch.All">
+            🏠 Inicio
+        </NavLink>
+
+        @if (esAdmin || esValidador || esVerificador)
+        {
+            <NavLink class="nav-link custom-link" href="/usuario">👤 Usuarios</NavLink>
+            <NavLink class="nav-link custom-link" href="/rol">🛡️ Roles</NavLink>
+            <NavLink class="nav-link custom-link" href="/indicador">📊 Indicadores</NavLink>
+            <NavLink class="nav-link custom-link" href="/tipoactor">👥 Tipos de Actor</NavLink>
+            <NavLink class="nav-link custom-link" href="/actor">👤 Actor</NavLink>
+            <NavLink class="nav-link custom-link" href="/tipoindicador">🏷️ Tipo Indicador</NavLink>
+            <NavLink class="nav-link custom-link" href="/unidad">📏 Unidad de Medición</NavLink>
+            <NavLink class="nav-link custom-link" href="/sentido">🔄 Sentido</NavLink>
+            <NavLink class="nav-link custom-link" href="/represenvisual">🖼️ Representación Visual</NavLink>
+            <NavLink class="nav-link custom-link" href="/fuente">📚 Fuente</NavLink>
+            <NavLink class="nav-link custom-link" href="/variable">🧮 Variables</NavLink>
+            <NavLink class="nav-link custom-link" href="/variableindicador">🧩 Variables por Indicador</NavLink>
+        }
+    </nav>
+</div>
+
+@code {
+    private bool esAdmin;
+    private bool esValidador;
+    private bool esVerificador;
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        esAdmin = !string.IsNullOrWhiteSpace(await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_admin"));
+        esValidador = !string.IsNullOrWhiteSpace(await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Validador"));
+        esVerificador = !string.IsNullOrWhiteSpace(await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Verificador"));
+    }
+
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+
+    private void HandleNavClick()
+    {
+        if (!collapseNavMenu) collapseNavMenu = true;
+    }
+
+    public void Dispose()
+    {
+        // Liberación de recursos si aplica
+    }
+}

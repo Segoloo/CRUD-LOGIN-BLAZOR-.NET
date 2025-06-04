@@ -1,0 +1,1295 @@
+@page "/indicador"
+@using System.Collections.Generic
+@using System.Threading.Tasks
+@using Services
+@inject ServicioEntidad servicioEntidad
+@inject NavigationManager navegacionManager
+@inject IJSRuntime JS
+
+<div class="container-xl">
+    <div class="table-responsive">
+        <div class="table-wrapper">
+            <div class="table-title">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <h2>Administrar <b>Indicador </b></h2>
+                    </div>
+                    <div class="col-sm-6">
+                        <button class="btn btn-info btn-sm" @onclick="() => mostrarModalConsulta = true">
+                            <i class="material-icons">&#xE8B6;</i> <span>Consultar</span>
+                        </button>
+                        <!-- Mostrar botones según rol -->
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-danger btn-sm" @onclick="MostrarModalEliminarMultiples">
+                                <i class="material-icons">&#xE15C;</i> <span>Eliminar</span>
+                            </button>
+                        }
+                        @if (puedeAgregarEliminar)
+                        {
+                            <button class="btn btn-success btn-sm" @onclick="AbrirModal">
+                                <i class="material-icons">&#xE147;</i> <span>Agregar</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (cargando)
+            {
+                <p><em>Cargando...</em></p>
+            }
+            else if (Indicadores == null || Indicadores.Count == 0)
+            {
+                <p>No hay Indicadores.</p>
+            }
+            else
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            @if (puedeAgregarEliminar)
+                            {
+                                <th>
+                                    <span class="custom-checkbox">
+                                        <input type="checkbox" @bind="@seleccionarTodos" disabled="@(!puedeAgregarEliminar)">
+                                        <label></label>
+                                    </span>
+                                </th>
+                            }
+                            <th>Id</th>
+                            <th>Nombre</th>
+                            @if (puedeEditar || puedeAgregarEliminar)
+                            {
+                                <th>Accion</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var indicador in Indicadores)
+                        {
+                            <tr>
+                                @if (puedeAgregarEliminar) // Solo mostrar checkbox si tiene permiso para eliminar
+                                {
+                                    <td>
+                                        <span class="custom-checkbox">
+                                            <input type="checkbox" @bind="@IndicadoresSeleccionado[indicador]" disabled="@(!puedeAgregarEliminar)">
+                                            <label></label>
+                                        </span>
+                                    </td>
+                                }
+                                <td>@ObtenerValor(indicador, "id")</td>
+                                <td>@ObtenerValor(indicador, "nombre")</td>
+                                @if (puedeEditar || puedeAgregarEliminar)
+                                {
+                                    <td>
+                                        @if (puedeEditar)
+                                        {
+                                            <a href="#" class="edit" @onclick="() => EditarIndicador(indicador)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Editar">&#xE254;</i>
+                                            </a>
+                                        }
+                                        @if (puedeAgregarEliminar)
+                                        {
+                                            <a href="#" class="delete" @onclick="() => EliminarIndicador(indicador)" @onclick:preventDefault>
+                                                <i class="material-icons" title="Eliminar">&#xE872;</i>
+                                            </a>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="GuardarIndicador">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Agregar un Indicador</h4>
+                        <button type="button" class="close" @onclick="CerrarModal">&times;</button>
+                    </div>
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="form-group">
+                            <label>Codigo</label>
+                            <input type="text" class="form-control" @bind="codigoIndicador" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreIndicador" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Objetivo</label>
+                            <input type="text" class="form-control" @bind="objetivoIndicador" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Alcance</label>
+                            <input type="text" class="form-control" @bind="alcanceIndicador" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Formula</label>
+                            <input type="text" class="form-control" @bind="formulaIndicador" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Meta</label>
+                            <input type="text" class="form-control" @bind="metaIndicador" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Indicador</label>
+                            <select class="form-control" @bind="FktipoIndicador" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var tipo in TiposIndicador)
+                                {
+                                    <option value="@tipo.Id">@tipo.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad de medicion</label>
+                            <select class="form-control" @bind="FkunidadMedicion" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var unidad in UnidadesMedicion)
+                                {
+                                    <option value="@unidad.Id">@unidad.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Sentido</label>
+                            <select class="form-control" @bind="Fksentido" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var sentido in Sentidos)
+                                {
+                                    <option value="@sentido.Id">@sentido.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Frecuencia</label>
+                            <select class="form-control" @bind="Fkfrecuencia" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var frecuencia in Frecuencias)
+                                {
+                                    <option value="@frecuencia.Id">@frecuencia.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Articulo</label>
+                            <select class="form-control" @bind="Fkarticulo" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var articulo in Articulos)
+                                {
+                                    <option value="@articulo.Id">@articulo.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Literal</label>
+                            <select class="form-control" @bind="Fkliteral" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var literal in Literales)
+                                {
+                                    <option value="@literal.Id">@literal.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Numeral</label>
+                            <select class="form-control" @bind="Fknumeral" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var numeral in Numerales)
+                                {
+                                    <option value="@numeral.Id">@numeral.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Paragrafo</label>
+                            <select class="form-control" @bind="Fkparagrafo" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var paragrafo in Paragrafos)
+                                {
+                                    <option value="@paragrafo.Id">@paragrafo.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Representacion Visual</label>
+                            <select class="form-control" @bind="Fkidrepresenvisual" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var representacionvisual in RepresentacionesVisual)
+                                {
+                                    <option value="@representacionvisual.Id">@representacionvisual.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fuente</label>
+                            <select class="form-control" @bind="Fkidfuenteindicador" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var fuente in FuentesIndicador)
+                                {
+                                    <option value="@fuente.Id">@fuente.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Responsable</label>
+                            <select class="form-control" @bind="Fkidresponsableindicador" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var responsable in ResponsableIndicador)
+                                {
+                                    <option value="@responsable.Id">@responsable.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModal">Cancelar</button>
+                        <button type="submit" class="btn btn-success">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalConsulta)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Consultar Indicador</h4>
+                    <button type="button" class="close" @onclick="CerrarModalConsulta">&times;</button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="form-group">
+                        <label>Identificador del Indicador</label>
+                        <input type="text" class="form-control" @bind="codigoIndicadorConsulta">
+                    </div>
+                    <button class="btn btn-primary mt-2" @onclick="ConsultarIndicador">Buscar</button>
+
+                    @if (indicadorConsultado != null)
+                    {
+                        <hr>
+                        <div class="form-group">
+                            <label>Codigo</label>
+                            <input type="text" class="form-control" value="@codigoindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" value="@nombreindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Objetivo</label>
+                            <input type="text" class="form-control" value="@objetivoindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Alcance</label>
+                            <input type="text" class="form-control" value="@alcanceindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Formula</label>
+                            <input type="text" class="form-control" value="@formulaindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Meta</label>
+                            <input type="text" class="form-control" value="@metaindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Indicador</label>
+                            <input type="text" class="form-control" value="@foraneatipoindicadorConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad de Medicion</label>
+                            <input type="text" class="form-control" value="@foraneaunidadmedicionConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Sentido</label>
+                            <input type="text" class="form-control" value="@foraneasentidoConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Frecuencia</label>
+                            <input type="text" class="form-control" value="@foraneafrecuenciaConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Articulo</label>
+                            <input type="text" class="form-control" value="@foraneaarticuloConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Literal</label>
+                            <input type="text" class="form-control" value="@foranealiteralConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Numeral</label>
+                            <input type="text" class="form-control" value="@foraneanumeralConsulta" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label>Paragrafo</label>
+                            <input type="text" class="form-control" value="@foraneaparagrafoConsulta" disabled>
+                        </div>
+
+                        @* Aquí va el bloque para mostrar respresentaciones *@
+                        @if (nombresrepresenvisualConsultado != null && nombresrepresenvisualConsultado.Count > 0)
+                        {
+                            <hr />
+                            <h5>Representacion Visual del Indicador</h5>
+                            <ul class="list-group">
+                                @foreach (var nombre in nombresrepresenvisualConsultado)
+                                {
+                                    <li class="list-group-item">
+                                        Representacion Visual: @nombre
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        @* Aquí va el bloque para mostrar fuentes *@
+                        @if (nombresfuenteConsultado != null && nombresfuenteConsultado.Count > 0)
+                        {
+                            <hr />
+                            <h5>Fuentes del Indicador</h5>
+                            <ul class="list-group">
+                                @foreach (var nombre in nombresfuenteConsultado)
+                                {
+                                    <li class="list-group-item">
+                                        Fuentes: @nombre
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        @* Aquí va el bloque para mostrar responsables *@
+                        @if (nombresresponsableConsultado != null && nombresresponsableConsultado.Count > 0)
+                        {
+                            <hr />
+                            <h5>Responsables del Indicador</h5>
+                            <ul class="list-group">
+                                @foreach (var nombre in nombresresponsableConsultado)
+                                {
+                                    <li class="list-group-item">
+                                        Responsables: @nombre
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CerrarModalConsulta">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEditar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <EditForm Model="this" OnValidSubmit="ActualizarIndicador">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Editar Indicador</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEditar">&times;</button>
+                    </div>
+                    <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="form-group">
+                            <label>Id</label>
+                            <input type="text" class="form-control" @bind="idIndicadorEditar" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Codigo</label>
+                            <input type="text" class="form-control" @bind="codigoIndicadorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" @bind="nombreIndicadorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Objetivo</label>
+                            <input type="text" class="form-control" @bind="objetivoIndicadorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Alcance</label>
+                            <input type="text" class="form-control" @bind="alcanceIndicadorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Formula</label>
+                            <input type="text" class="form-control" @bind="formulaIndicadorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Meta</label>
+                            <input type="text" class="form-control" @bind="metaIndicadorEditar" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Indicador</label>
+                            <select class="form-control" @bind="foraneatipoIndicadorEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var tipo in TiposIndicador)
+                                {
+                                    <option value="@tipo.Id">@tipo.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad de medicion</label>
+                            <select class="form-control" @bind="foraneaunidadmedicionEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var unidad in UnidadesMedicion)
+                                {
+                                    <option value="@unidad.Id">@unidad.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Sentido</label>
+                            <select class="form-control" @bind="foraneasentidoEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var sentido in Sentidos)
+                                {
+                                    <option value="@sentido.Id">@sentido.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Frecuencia</label>
+                            <select class="form-control" @bind="foraneafrecuenciaEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var frecuencia in Frecuencias)
+                                {
+                                    <option value="@frecuencia.Id">@frecuencia.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Articulo</label>
+                            <select class="form-control" @bind="foraneaarticuloEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var articulo in Articulos)
+                                {
+                                    <option value="@articulo.Id">@articulo.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Literal</label>
+                            <select class="form-control" @bind="foranealiteralEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var literal in Literales)
+                                {
+                                    <option value="@literal.Id">@literal.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Numeral</label>
+                            <select class="form-control" @bind="foraneanumeralEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var numeral in Numerales)
+                                {
+                                    <option value="@numeral.Id">@numeral.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Paragrafo</label>
+                            <select class="form-control" @bind="foraneaparagrafoEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var paragrafo in Paragrafos)
+                                {
+                                    <option value="@paragrafo.Id">@paragrafo.Id</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">>
+                            <label>Representacion Visual</label>
+                            <select class="form-control" @bind="foranearepresenvisualEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var representacionvisual in RepresentacionesVisual)
+                                {
+                                    <option value="@representacionvisual.Id">@representacionvisual.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">>
+                            <label>Fuentes</label>
+                            <select class="form-control" @bind="foraneafuenteEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var fuente in FuentesIndicador)
+                                {
+                                    <option value="@fuente.Id">@fuente.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-group">>
+                            <label>Responsables</label>
+                            <select class="form-control" @bind="foranearesponsableEditar" required>
+                                <option value="">Seleccione...</option>
+                                @foreach (var responsable in ResponsableIndicador)
+                                {
+                                    <option value="@responsable.Id">@responsable.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEditar">Cancelar</button>
+                        <button type="submit" class="btn btn-info">Actualizar</button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+
+
+@if (mostrarModalEliminar)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarIndicador">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Indicador</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminar">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro(a) de que desea eliminar este Indicador?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminar">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModalEliminarMultiples)
+{
+    <div class="modal fade show d-block" style="background: rgba(0, 0, 0, 0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form @onsubmit="ConfirmarEliminarSeleccionados">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Eliminar Indicadores Seleccionados</h4>
+                        <button type="button" class="close" @onclick="CerrarModalEliminarMultiples">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <p>¿Está seguro de que desea eliminar los Indicadores seleccionados?</p>
+                        <p class="text-warning"><small>Esta acción no se puede deshacer.</small></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CerrarModalEliminarMultiples">Cancelar</button>
+                        <button type="submit" class="btn btn-danger">Eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Dictionary<string, object>> Indicadores = new List<Dictionary<string, object>>();
+    private Dictionary<Dictionary<string, object>, bool> IndicadoresSeleccionado = new();
+    private bool cargando = true;
+    private string? errorMensaje = null;
+
+    private bool seleccionarTodos
+    {
+        get => _seleccionarTodos;
+        set
+        {
+            _seleccionarTodos = value;
+            foreach (var clave in IndicadoresSeleccionado.Keys.ToList())
+            {
+                IndicadoresSeleccionado[clave] = _seleccionarTodos;
+            }
+        }
+    }
+    private bool _seleccionarTodos = false;
+    private bool mostrarModal = false;
+    private string IdIndicador = "";
+    private string codigoIndicador = "";
+    private string nombreIndicador = "";
+    private string objetivoIndicador = "";
+    private string alcanceIndicador = "";
+    private string formulaIndicador = "";
+    private string metaIndicador = "";
+    private string FktipoIndicador = "";
+    private string FkunidadMedicion = "";
+    private string Fksentido = "";
+    private string Fkfrecuencia = "";
+    private string Fkidrepresenvisual = "";
+    private string Fkidfuenteindicador = "";
+    private string Fkidresponsableindicador = "";
+    private string FkidIndicador = "";
+    private string Fkidindicador = "";
+    private string Fkarticulo = "";
+    private string Fkliteral = "";
+    private string Fknumeral = "";
+    private string Fkparagrafo = "";
+
+    // Variables para controlar el modal de consulta
+    private bool mostrarModalConsulta = false;
+    private string codigoIndicadorConsulta = "";
+
+    // Variables para mostrar los datos del actor consultado
+    private Dictionary<string, object>? indicadorConsultado = null;
+    private string codigoindicadorConsulta = "";
+    private string nombreindicadorConsulta = "";
+    private string objetivoindicadorConsulta = "";
+    private string alcanceindicadorConsulta = "";
+    private string formulaindicadorConsulta = "";
+    private string metaindicadorConsulta = "";
+    private string foraneatipoindicadorConsulta = "";
+    private string foraneaunidadmedicionConsulta = "";
+    private string foraneasentidoConsulta = "";
+    private string foraneafrecuenciaConsulta = "";
+    private string foraneaarticuloConsulta = "";
+    private string foranealiteralConsulta = "";
+    private string foraneanumeralConsulta = "";
+    private string foraneaparagrafoConsulta = "";
+    private List<Dictionary<string, object>> idindicadoresrepresenvisualConsultado = new();
+    private List<Dictionary<string, object>> idindicadoresfuenteConsultado = new();
+    private List<Dictionary<string, object>> idindicadoresresponsableConsultado = new();
+    List<string> nombresrepresenvisualConsultado;
+    List<string> nombresfuenteConsultado;
+    List<string> nombresresponsableConsultado;
+
+    // Variables para el modal de edición
+    private bool mostrarModalEditar = false;
+    private Dictionary<string, object>? indicadorParaEditar = null;
+    private string idIndicadorEditar = "";
+    private string codigoIndicadorEditar = "";
+    private string nombreIndicadorEditar = "";
+    private string objetivoIndicadorEditar = "";
+    private string alcanceIndicadorEditar = "";
+    private string formulaIndicadorEditar = "";
+    private string metaIndicadorEditar = "";
+    private string foraneatipoIndicadorEditar = "";
+    private string foraneaunidadmedicionEditar = "";
+    private string foraneasentidoEditar = "";
+    private string foraneafrecuenciaEditar = "";
+    private string foraneaarticuloEditar = "";
+    private string foranealiteralEditar = "";
+    private string foraneanumeralEditar = "";
+    private string foraneaparagrafoEditar = "";
+    private string foranearepresenvisualEditar = "";
+    private string foraneafuenteEditar = "";
+    private string foranearesponsableEditar = "";
+
+    // Variables para el modal de eliminación
+    private bool mostrarModalEliminar = false;
+    private Dictionary<string, object>? IndicadorParaEliminar = null;
+    public class OpcionSeleccion
+    {
+        public string Id { get; set; }
+        public string Nombre { get; set; }
+    }
+    // Variables para listas
+    List<OpcionSeleccion> TiposIndicador = new();
+    List<OpcionSeleccion> UnidadesMedicion = new();
+    List<OpcionSeleccion> Sentidos = new();
+    List<OpcionSeleccion> Frecuencias = new();
+    List<OpcionSeleccion> Articulos = new();
+    List<OpcionSeleccion> Literales = new();
+    List<OpcionSeleccion> Numerales = new();
+    List<OpcionSeleccion> Paragrafos = new();
+    List<OpcionSeleccion> RepresentacionesVisual = new();
+    List<OpcionSeleccion> FuentesIndicador = new();
+    List<OpcionSeleccion> ResponsableIndicador = new();
+
+    // Variables para el modal de eliminación múltiple
+    private bool mostrarModalEliminarMultiples = false;
+
+    // Nuevas propiedades para control de acceso
+    private bool esAdmin = false;
+    private bool esValidador = false;
+    private bool esVerificador = false;
+    private bool puedeEditar => esAdmin || esValidador;
+    private bool puedeAgregarEliminar => esAdmin;
+    private bool puedeConsultar => true; // Todos pueden consultar
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarIndicador();
+        await CargarOpciones();
+        await VerificarRoles();
+    }
+    private async Task VerificarRoles()
+    {
+        // Obtener roles de sessionStorage
+        var rolAdmin = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_admin");
+        var rolValidador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Validador");
+        var rolVerificador = await JS.InvokeAsync<string>("sessionStorage.getItem", "rol_Verificador");
+
+        esAdmin = !string.IsNullOrEmpty(rolAdmin);
+        esValidador = !string.IsNullOrEmpty(rolValidador);
+        esVerificador = !string.IsNullOrEmpty(rolVerificador);
+    }
+    private async Task CargarOpciones()
+    {
+        try
+        {
+            var tipos = await servicioEntidad.ObtenerTodosAsync("proyecto", "tipoindicador");
+            TiposIndicador = tipos?.Select(t => new OpcionSeleccion
+            {
+                Id = t["id"].ToString(),
+                Nombre = t["nombre"].ToString()
+            }).ToList() ?? new();
+
+            var unidades = await servicioEntidad.ObtenerTodosAsync("proyecto", "unidadmedicion");
+            UnidadesMedicion = unidades?.Select(u => new OpcionSeleccion
+            {
+                Id = u["id"].ToString(),
+                Nombre = u["descripcion"].ToString()
+            }).ToList() ?? new();
+
+            var sentidos = await servicioEntidad.ObtenerTodosAsync("proyecto", "sentido");
+            Sentidos = sentidos?.Select(s => new OpcionSeleccion
+            {
+                Id = s["id"].ToString(),
+                Nombre = s["nombre"].ToString()
+            }).ToList() ?? new();
+
+            var frecuencias = await servicioEntidad.ObtenerTodosAsync("proyecto", "frecuencia");
+            Frecuencias = frecuencias?.Select(f => new OpcionSeleccion
+            {
+                Id = f["id"].ToString(),
+                Nombre = f["nombre"].ToString()
+            }).ToList() ?? new();
+
+            var articulos = await servicioEntidad.ObtenerTodosAsync("proyecto", "articulo");
+            Articulos = articulos?.Select(a => new OpcionSeleccion
+            {
+                Id = a["id"].ToString(),
+                Nombre = a["nombre"].ToString()
+            }).ToList() ?? new();
+
+            var literales = await servicioEntidad.ObtenerTodosAsync("proyecto", "literal");
+            Literales = literales?.Select(l => new OpcionSeleccion
+            {
+                Id = l["id"].ToString(),
+                Nombre = l["descripcion"].ToString()
+            }).ToList() ?? new();
+
+            var numerales = await servicioEntidad.ObtenerTodosAsync("proyecto", "numeral");
+            Numerales = numerales?.Select(n => new OpcionSeleccion
+            {
+                Id = n["id"].ToString(),
+                Nombre = n["descripcion"].ToString()
+            }).ToList() ?? new();
+
+            var paragrafos = await servicioEntidad.ObtenerTodosAsync("proyecto", "paragrafo");
+            Paragrafos = paragrafos?.Select(p => new OpcionSeleccion
+            {
+                Id = p["id"].ToString(),
+                Nombre = p["descripcion"].ToString()
+            }).ToList() ?? new();
+
+            var representacionesvisual = await servicioEntidad.ObtenerTodosAsync("proyecto", "represenvisual");
+            RepresentacionesVisual = representacionesvisual?.Select(r => new OpcionSeleccion
+            {
+                Id = r["id"].ToString(),
+                Nombre = r["nombre"].ToString()
+            }).ToList() ?? new();
+
+            var fuentesindicadores = await servicioEntidad.ObtenerTodosAsync("proyecto", "fuente");
+            FuentesIndicador = fuentesindicadores?.Select(r => new OpcionSeleccion
+            {
+                Id = r["id"].ToString(),
+                Nombre = r["nombre"].ToString()
+            }).ToList() ?? new();
+
+            var responsablesindicadores = await servicioEntidad.ObtenerTodosAsync("proyecto", "actor");
+            ResponsableIndicador = responsablesindicadores?.Select(r => new OpcionSeleccion
+            {
+                Id = r["id"].ToString(),
+                Nombre = r["nombre"].ToString()
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar opciones: {ex.Message}";
+        }
+    }
+    private async Task CargarIndicador()
+    {
+        cargando = true;
+        errorMensaje = null;
+
+        try
+        {
+            var resultado = await servicioEntidad.ObtenerTodosAsync("proyecto", "indicador");
+            Indicadores = resultado ?? new List<Dictionary<string, object>>();
+            IndicadoresSeleccionado = Indicadores.ToDictionary(p => p, p => false);
+        }
+        catch (Exception ex)
+        {
+            errorMensaje = $"Error al cargar indicador: {ex.Message}";
+            Indicadores = new List<Dictionary<string, object>>();
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+    private async Task GuardarIndicador()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(codigoIndicador) || 
+            string.IsNullOrEmpty(nombreIndicador) ||
+            string.IsNullOrEmpty(objetivoIndicador) ||
+            string.IsNullOrEmpty(alcanceIndicador) ||
+            string.IsNullOrEmpty(formulaIndicador) ||
+            string.IsNullOrEmpty(metaIndicador) ||
+            string.IsNullOrEmpty(FktipoIndicador) ||
+            string.IsNullOrEmpty(FkunidadMedicion) ||
+            string.IsNullOrEmpty(Fksentido) ||
+            string.IsNullOrEmpty(Fkfrecuencia) ||
+            string.IsNullOrEmpty(Fkidrepresenvisual) ||
+            string.IsNullOrEmpty(Fkidfuenteindicador) ||
+            string.IsNullOrEmpty(Fkidresponsableindicador))
+        {
+            errorMensaje = "Todos los campos son obligatorios";
+            return;
+        }
+
+        var nuevoIndicador = new Dictionary<string, object>
+        {
+            { "codigo", codigoIndicador },
+            { "nombre", nombreIndicador },
+            { "objetivo", objetivoIndicador },
+            { "alcance", alcanceIndicador },
+            { "formula", formulaIndicador },
+            { "meta", metaIndicador },
+            { "fkidtipoindicador", FktipoIndicador },
+            { "fkidunidadmedicion", FkunidadMedicion },
+            { "fkidsentido", Fksentido },
+            { "fkidfrecuencia", Fkfrecuencia },
+            { "fkidarticulo", Fkarticulo },
+            { "fkidliteral", Fkliteral },
+            { "fkidnumeral", Fknumeral },
+            { "fkidparagrafo", Fkparagrafo },
+        };
+
+        bool resultado = await servicioEntidad.CrearAsync("proyecto", "indicador", nuevoIndicador);
+
+        var registros = await servicioEntidad.ObtenerTodosAsync("proyecto", "indicador");
+        FkidIndicador = ObtenerUltimoId(registros, "id");
+
+        var representacion = new Dictionary<string, object>
+        {
+            { "fkidindicador", FkidIndicador },
+            { "fkidrepresenvisual", Fkidrepresenvisual },
+        };
+        var fuentes = new Dictionary<string, object>
+        {
+            { "fkidfuente", Fkidfuenteindicador },
+            { "fkidindicador", FkidIndicador },
+        };
+        var responsables = new Dictionary<string, object>
+        {
+            { "fkidresponsable", Fkidresponsableindicador },
+            { "fkidindicador", FkidIndicador },
+        };
+
+        var represent = await servicioEntidad.EjecutarProcedimientoAsync(
+            "proyecto",
+            "represenvisualporindicador",
+            "InsertarIndicadorRepresenVisual",
+            representacion);
+
+        var fuente = await servicioEntidad.EjecutarProcedimientoAsync(
+            "proyecto",
+            "fuentesporindicador",
+            "InsertarIndicadorFuente",
+            fuentes);
+
+        var responsable = await servicioEntidad.EjecutarProcedimientoAsync(
+            "proyecto",
+            "responsablesporindicador",
+            "InsertarIndicadorResponsable",
+            responsables);
+
+        if (resultado == true  && represent != null && fuente != null && responsable != null)
+        {
+            await CargarIndicador(); // 🔄 Refrescar para obtener el ID generado por la base de datos
+            CerrarModal();
+        }
+        else
+        {
+            errorMensaje = "Error al guardar el Indicador en la base de datos.";
+        }
+    }
+    private string ObtenerUltimoId(List<Dictionary<string, object>> lista, string campo)
+    {
+        return lista
+            .Select(item =>
+            {
+                var valor = item.ContainsKey(campo) ? item[campo]?.ToString() : null;
+                bool valido = int.TryParse(valor, out int id);
+                return new { Valido = valido, Id = id, ValorOriginal = valor };
+            })
+            .Where(x => x.Valido)
+            .OrderByDescending(x => x.Id)
+            .Select(x => x.Id.ToString())
+            .FirstOrDefault() ?? "";
+    }
+    private void AbrirModal()
+    {
+        mostrarModal = true;
+        nombreIndicador = "";
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+    private async Task ConsultarIndicador()
+    {
+        if (string.IsNullOrEmpty(codigoIndicadorConsulta))
+        {
+            errorMensaje = "Debe ingresar un identificador de indicador.";
+            return;
+        }
+
+        var resultado = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "indicador", "Id", codigoIndicadorConsulta);
+
+        if (resultado != null)
+        {
+            indicadorConsultado = resultado;
+            codigoindicadorConsulta = ObtenerValor(resultado, "codigo");
+            nombreindicadorConsulta = ObtenerValor(resultado, "nombre");
+            objetivoindicadorConsulta = ObtenerValor(resultado, "objetivo");
+            alcanceindicadorConsulta = ObtenerValor(resultado, "alcance");
+            formulaindicadorConsulta = ObtenerValor(resultado, "formula");
+            metaindicadorConsulta = ObtenerValor(resultado, "meta");
+            foraneatipoindicadorConsulta = ObtenerValor(resultado, "fkidtipoindicador");
+            foraneaunidadmedicionConsulta = ObtenerValor(resultado, "fkidunidadmedicion");
+            foraneasentidoConsulta = ObtenerValor(resultado, "fkidsentido");
+            foraneafrecuenciaConsulta = ObtenerValor(resultado, "fkidfrecuencia");
+            foraneaarticuloConsulta = ObtenerValor(resultado, "fkidarticulo");
+            foranealiteralConsulta = ObtenerValor(resultado, "fkidliteral");
+            foraneanumeralConsulta = ObtenerValor(resultado, "fkidnumeral");
+            foraneaparagrafoConsulta = ObtenerValor(resultado, "fkidparagrafo");
+
+            // Consultar representaciones visuales asociados al indicador
+            idindicadoresrepresenvisualConsultado = await servicioEntidad.ObtenerTodosAsync("proyecto", $"represenvisualporindicador/fkidindicador/{codigoIndicadorConsulta}") ?? new();
+            nombresrepresenvisualConsultado = new List<string>();
+            foreach (var item in idindicadoresrepresenvisualConsultado)
+            {
+                string idRV = ObtenerValor(item, "fkidrepresenvisual");
+                
+                if (!string.IsNullOrEmpty(idRV))
+                {
+                    var datosRV = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "represenvisual", "id", idRV);
+                    string nombre = ObtenerValor(datosRV, "nombre");
+
+                    if (!string.IsNullOrEmpty(nombre))
+                    {
+                        nombresrepresenvisualConsultado.Add(nombre);
+                    }
+                }
+            }
+            idindicadoresfuenteConsultado = await servicioEntidad.ObtenerTodosAsync("proyecto", $"fuentesporindicador/fkidindicador/{codigoIndicadorConsulta}") ?? new();
+            nombresfuenteConsultado = new List<string>();
+            foreach (var item in idindicadoresfuenteConsultado)
+            {
+                string idRV = ObtenerValor(item, "fkidfuente");
+                
+                if (!string.IsNullOrEmpty(idRV))
+                {
+                    var datosRV = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "fuente", "id", idRV);
+                    string nombre = ObtenerValor(datosRV, "nombre");
+
+                    if (!string.IsNullOrEmpty(nombre))
+                    {
+                        nombresfuenteConsultado.Add(nombre);
+                    }
+                }
+            }
+            idindicadoresresponsableConsultado = await servicioEntidad.ObtenerTodosAsync("proyecto", $"responsablesporindicador/fkidindicador/{codigoIndicadorConsulta}") ?? new();
+            nombresresponsableConsultado = new List<string>();
+            foreach (var item in idindicadoresresponsableConsultado)
+            {
+                string idRV = ObtenerValor(item, "fkidresponsable");
+                
+                if (!string.IsNullOrEmpty(idRV))
+                {
+                    var datosRV = await servicioEntidad.ObtenerPorClaveAsync("proyecto", "actor", "id", idRV);
+                    string nombre = ObtenerValor(datosRV, "nombre");
+
+                    if (!string.IsNullOrEmpty(nombre))
+                    {
+                        nombresresponsableConsultado.Add(nombre);
+                    }
+                }
+            }
+        }
+        else
+        {
+            errorMensaje = "No se encontró el indicador.";
+            indicadorConsultado = null;
+            nombreindicadorConsulta = "";
+            nombresrepresenvisualConsultado.Clear();
+            nombresfuenteConsultado.Clear();
+            nombresresponsableConsultado.Clear();
+        }
+    }
+    private void CerrarModalConsulta()
+    {
+        mostrarModalConsulta = false;
+        codigoIndicadorConsulta = "";
+        indicadorConsultado = null;
+        nombreindicadorConsulta = "";
+    }
+
+    private void EditarIndicadorSeleccionado()
+    {
+        var seleccionado = IndicadoresSeleccionado.FirstOrDefault(x => x.Value).Key;
+        if (seleccionado != null)
+        {
+            EditarIndicador(seleccionado);
+        }
+        else
+        {
+            errorMensaje = "Debe seleccionar un Indicador para editar.";
+        }
+    }
+    private void EditarIndicador(Dictionary<string, object> indicador)
+    {
+        indicadorParaEditar = indicador;
+        
+        // Cargar datos del tipoactor en el formulario de edición
+        idIndicadorEditar = ObtenerValor(indicador, "id");
+        codigoIndicadorEditar = ObtenerValor(indicador, "codigo");
+        nombreIndicadorEditar = ObtenerValor(indicador, "nombre");
+        objetivoIndicadorEditar = ObtenerValor(indicador, "objetivo");
+        alcanceIndicadorEditar = ObtenerValor(indicador, "alcance");
+        formulaIndicadorEditar = ObtenerValor(indicador, "formula");
+        metaIndicadorEditar = ObtenerValor(indicador, "meta");
+        foraneatipoIndicadorEditar = ObtenerValor(indicador, "fkidtipoindicador");
+        foraneaunidadmedicionEditar = ObtenerValor(indicador, "fkidunidadmedicion");
+        foraneasentidoEditar = ObtenerValor(indicador, "fkidsentido");
+        foraneafrecuenciaEditar = ObtenerValor(indicador, "fkidfrecuencia");
+        foraneaarticuloEditar = ObtenerValor(indicador, "fkidarticulo");
+        foranealiteralEditar = ObtenerValor(indicador, "fkidliteral");
+        foraneanumeralEditar = ObtenerValor(indicador, "fkidnumeral");
+        foraneaparagrafoEditar = ObtenerValor(indicador, "fkidparagrafo");
+        
+        mostrarModalEditar = true;
+    }
+    private string ObtenerValor(Dictionary<string, object> diccionario, string clave)
+    {
+        return diccionario.TryGetValue(clave, out var valor) ? valor?.ToString() ?? "" : "";
+    }
+    private async Task ActualizarIndicador()
+    {
+        if (!puedeEditar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+
+        if (indicadorParaEditar == null || 
+            string.IsNullOrEmpty(codigoIndicadorEditar) ||
+            string.IsNullOrEmpty(nombreIndicadorEditar) ||
+            string.IsNullOrEmpty(objetivoIndicadorEditar) ||
+            string.IsNullOrEmpty(alcanceIndicadorEditar) ||
+            string.IsNullOrEmpty(formulaIndicadorEditar) ||
+            string.IsNullOrEmpty(metaIndicadorEditar) ||
+            string.IsNullOrEmpty(foraneatipoIndicadorEditar) ||
+            string.IsNullOrEmpty(foraneaunidadmedicionEditar) ||
+            string.IsNullOrEmpty(foraneasentidoEditar) ||
+            string.IsNullOrEmpty(foraneafrecuenciaEditar)
+        )
+        {
+            errorMensaje = "Todos los campos son obligatorios";
+            return;
+        }
+
+        var datosindicadorActualizado = new Dictionary<string, object>
+        {
+            { "id", idIndicadorEditar},
+            { "codigo", codigoIndicadorEditar},
+            { "nombre", nombreIndicadorEditar},
+            { "objetivo", objetivoIndicadorEditar},
+            { "alcance", alcanceIndicadorEditar},
+            { "formula", formulaIndicadorEditar},
+            { "meta", metaIndicadorEditar},
+            { "fkidtipoindicador", foraneatipoIndicadorEditar},
+            { "fkidunidadmedicion", foraneaunidadmedicionEditar},
+            { "fkidsentido", foraneasentidoEditar},
+            { "fkidfrecuencia", foraneafrecuenciaEditar},
+            { "fkidarticulo", foraneaarticuloEditar},
+            { "fkidliteral", foranealiteralEditar},
+            { "fkidnumeral", foraneanumeralEditar},
+            { "fkidparagrafo", foraneaparagrafoEditar},
+        };
+
+        bool resultado = await servicioEntidad.ActualizarAsync(
+        "proyecto",
+        "indicador",
+        "id",                    // <- este es el nombre de la clave primaria
+        idIndicadorEditar,  // <- este es el valor de la clave primaria
+        datosindicadorActualizado);
+
+        if (resultado)
+        {
+            // Actualizar el actor en la lista local
+            int indice = Indicadores.IndexOf(indicadorParaEditar);
+            if (indice >= 0)
+            {
+                Indicadores[indice] = datosindicadorActualizado;
+                IndicadoresSeleccionado.Remove(indicadorParaEditar);
+                IndicadoresSeleccionado[datosindicadorActualizado] = false;
+            }
+            CerrarModalEditar();
+        }
+        else
+        {
+            errorMensaje = "Error al actualizar el Indicador en la base de datos.";
+        }
+
+        var representacion = new Dictionary<string, object>
+        {
+            { "fkidindicador", idIndicadorEditar },
+            { "fkidrepresenvisual", foranearepresenvisualEditar },
+        };
+        var fuentes = new Dictionary<string, object>
+        {
+            { "fkidfuente", foraneafuenteEditar },
+            { "fkidindicador", idIndicadorEditar },
+        };
+        var responsables = new Dictionary<string, object>
+        {
+            { "fkidresponsable", foranearesponsableEditar },
+            { "fkidindicador", idIndicadorEditar },
+        };
+
+        var represent = await servicioEntidad.EjecutarProcedimientoAsync(
+            "proyecto",
+            "represenvisualporindicador",
+            "InsertarIndicadorRepresenVisual",
+            representacion);
+
+        var fuente = await servicioEntidad.EjecutarProcedimientoAsync(
+            "proyecto",
+            "fuentesporindicador",
+            "InsertarIndicadorFuente",
+            fuentes);
+
+        var responsable = await servicioEntidad.EjecutarProcedimientoAsync(
+            "proyecto",
+            "responsablesporindicador",
+            "InsertarIndicadorResponsable",
+            responsables);
+    }
+    private void CerrarModalEditar()
+    {
+        mostrarModalEditar = false;
+        indicadorParaEditar = null;
+    }
+    private void EliminarIndicador(Dictionary<string, object> indicador)
+    {
+        IndicadorParaEliminar = indicador;
+        mostrarModalEliminar = true;
+    }
+    private async Task ConfirmarEliminarIndicador()
+    {
+        if (IndicadorParaEliminar != null)
+        {
+            string id = ObtenerValor(IndicadorParaEliminar, "id");
+            
+            // Eliminar de la base de datos
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "indicador", 
+                "id", 
+                id);
+                
+            if (resultado)
+            {
+                // Eliminar de la lista local
+                Indicadores.Remove(IndicadorParaEliminar);
+                IndicadoresSeleccionado.Remove(IndicadorParaEliminar);
+            }
+            else
+            {
+                errorMensaje = "Error al eliminar el Indicador de la base de datos.";
+            }
+            
+            CerrarModalEliminar();
+        }
+    }
+    private void CerrarModalEliminar()
+    {
+        mostrarModalEliminar = false;
+        IndicadorParaEliminar = null;
+    }
+    private void MostrarModalEliminarMultiples()
+    {
+        // Verificar si hay actores seleccionados
+        var haySeleccionados = IndicadoresSeleccionado.Any(x => x.Value);
+        if (!haySeleccionados)
+        {
+            errorMensaje = "Debe seleccionar al menos un Indicador para eliminar.";
+            return;
+        }
+        
+        mostrarModalEliminarMultiples = true;
+    }
+    private async Task ConfirmarEliminarSeleccionados()
+    {
+        await EliminarSeleccionados();
+        CerrarModalEliminarMultiples();
+    }
+    private async Task EliminarSeleccionados()
+    {
+        if (!puedeAgregarEliminar)
+        {
+            await JS.InvokeVoidAsync("alert", "No tiene permisos para esta acción");
+            return;
+        }
+        
+        var seleccionados = IndicadoresSeleccionado.Where(x => x.Value).Select(x => x.Key).ToList();
+        
+        foreach (var indicador in seleccionados)
+        {
+            string codigo = ObtenerValor(indicador, "id");
+            bool resultado = await servicioEntidad.EliminarAsync(
+                "proyecto", 
+                "indicador", 
+                "id", 
+                codigo);
+                
+            if (resultado)
+            {
+                Indicadores.Remove(indicador);
+                IndicadoresSeleccionado.Remove(indicador);
+            }
+        }
+        seleccionarTodos = false;
+    }
+    private void CerrarModalEliminarMultiples()
+    {
+        mostrarModalEliminarMultiples = false;
+    }
+}

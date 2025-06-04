@@ -1,0 +1,40 @@
+﻿@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+@if (!yaVerificado)
+{
+    <div>Cargando...</div>
+}
+else
+{
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>No encontrado</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+}
+
+@code {
+    private bool estaLogueado = false;
+    private bool yaVerificado = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var login = await JS.InvokeAsync<string>("sessionStorage.getItem", "isLoggedIn");
+        estaLogueado = login == "true";
+        yaVerificado = true;
+
+        // Redirigir si no está logueado y no está en login
+        if (!estaLogueado && !Navigation.Uri.Contains("/login"))
+        {
+            Navigation.NavigateTo("login");
+        }
+    }
+}

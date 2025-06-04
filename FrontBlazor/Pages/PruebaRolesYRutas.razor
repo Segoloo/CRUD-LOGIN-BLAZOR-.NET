@@ -1,0 +1,91 @@
+@page "/prueba-roles-rutas"
+@inject IJSRuntime JSRuntime
+
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Información del Usuario</h3>
+        </div>
+        <div class="card-body">
+            <div class="mb-4">
+                <h5>Email:</h5>
+                <p class="fs-5 text-secondary">@usuarioEmail</p>
+            </div>
+
+            <div class="mb-4">
+                <h5>Roles:</h5>
+                @if (roles.Count == 0)
+                {
+                    <p class="text-muted fst-italic">No se encontraron roles asignados.</p>
+                }
+                else
+                {
+                    <ul class="list-group">
+                        @foreach (var rol in roles)
+                        {
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="bi bi-person-badge me-2 text-primary"></i> @rol
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+
+            <div>
+                <h5>Rutas a las que tiene acceso:</h5>
+                @if (rutas.Count == 0)
+                {
+                    <p class="text-muted fst-italic">No hay rutas asignadas.</p>
+                }
+                else
+                {
+                    <ul class="list-group">
+                        @foreach (var ruta in rutas)
+                        {
+                            <li class="list-group-item d-flex align-items-center">
+                                <i class="bi bi-link-45deg me-2 text-success"></i> @ruta
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string usuarioEmail = "";
+    private List<string> roles = new();
+    private List<string> rutas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            usuarioEmail = await JSRuntime.InvokeAsync<string>("sessionStorage.getItem", "usuarioEmail");
+
+            var scriptRoles = @"
+                Object.keys(sessionStorage)
+                    .filter(key => key.startsWith('rol_'))
+                    .map(key => sessionStorage.getItem(key))
+            ";
+
+            roles = await JSRuntime.InvokeAsync<List<string>>("eval", scriptRoles);
+
+            var scriptRutas = @"
+                Object.keys(sessionStorage)
+                    .filter(key => key.startsWith('ruta_'))
+                    .map(key => sessionStorage.getItem(key))
+            ";
+
+            rutas = await JSRuntime.InvokeAsync<List<string>>("eval", scriptRutas);
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("console.error", "Error:", ex);
+        }
+    }
+}

@@ -1,0 +1,19 @@
+@page "/logout"
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // Limpiar toda la información almacenada en sessionStorage
+        await JSRuntime.InvokeVoidAsync("sessionStorage.clear");
+
+        // Redirigir al usuario a la página de inicio de sesión
+        Navigation.NavigateTo("/login", forceLoad: true);
+    }
+}
+
+<div class="text-center">
+    <h3>Cerrando sesión...</h3>
+    <p>Serás redirigido a la página de inicio de sesión en un momento.</p>
+</div>

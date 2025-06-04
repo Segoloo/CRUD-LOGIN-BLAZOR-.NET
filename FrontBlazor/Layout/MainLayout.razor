@@ -1,0 +1,46 @@
+﻿@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="page">
+    @if (!IsLoginPage)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
+
+    <main>
+        @if (!IsLoginPage)
+        {
+            <div class="top-row d-flex justify-content-between align-items-center bg-primary text-white px-4 py-2 shadow">
+                <a class="text-white text-decoration-none fw-bold" href="/">🗿SISTEMA DE INDICADORES🗿 ITM</a>
+
+                <div>
+                    <button class="btn btn-outline-light me-2" @onclick="IrAVerificarRol">🔍 Verificar Rol</button>
+                    <button class="btn btn-outline-light" @onclick="Logout">🚪 Logout</button>
+                </div>
+            </div>
+        }
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private bool IsLoginPage => Navigation.Uri.EndsWith("/login");
+
+    private void IrAVerificarRol()
+    {
+        Navigation.NavigateTo("/prueba-roles-rutas");
+    }
+
+    private async Task Logout()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "👋 ¡Hasta luego!");
+        await JSRuntime.InvokeVoidAsync("sessionStorage.clear");
+        Navigation.NavigateTo("login", forceLoad: true);
+    }
+}
